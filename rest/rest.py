@@ -1,56 +1,77 @@
-from flask import Flask, request
+import asyncio
+from flask import Flask, request, jsonify
 from concurrent.futures import ThreadPoolExecutor
+
+from storage.mongo_provider import MongoDbProvider
 from storage.repository import Repository
 from migrations.migration import Migration, Workload, Credentials, \
     MountPoint, MigrationTarget
 from handlers import request_exception_handler
 
+from storage.workloads_repo import WorkloadsRepo
+
 executor = ThreadPoolExecutor(4)
 
+loop = asyncio.new_event_loop()
 app = Flask(__name__)
 
 
 @app.route("/")
 def index():
-    return "Hello, this is a migration app!"
+    return "Hi, I'm ready!"
 
 
 @app.route("/workloads", methods=['GET'])
 @request_exception_handler
 def get_workloads():
-    repo = Repository()
-    saved_workloads = repo.get_workloads()
-    saved_workloads.pop('max_id')
-    for workload_id in saved_workloads:
-        saved_workloads[workload_id] = \
-            saved_workloads[workload_id].to_dict()
-    return str(saved_workloads)
+    repo = get_workload_repo()
+    saved_workloads = loop.run_until_complete(repo.get_workloads_async())
+
+    return jsonify([workload.to_dict() for workload in saved_workloads])
+
+
+@app.route("/workloads/<workload_id>", methods=['GET'])
+@request_exception_handler
+def get_workload(workload_id):
+    print(request)
+
+    repo = get_workload_repo()
+    workload = loop.run_until_complete(repo.get_workload_async(workload_id))
+
+    return jsonify(workload.to_dict())
 
 
 @app.route("/workloads", methods=['POST'])
 @request_exception_handler
 def create_workload():
     print(request)
+
     workload_params = _parse_workload_params(request.get_json())
     workload_params.pop('id')
+
     workload = Workload(**workload_params)
-    repo = Repository()
-    workload_id = repo.create_workload(workload)
+    repo = get_workload_repo()
+
+    workload_id = loop.run_until_complete(repo.create_workload_async(workload))
+
     return "Workload was created successfully with id: {}".format(
         workload_id)
+
 
 @app.route("/workloads", methods=['PUT'])
 @request_exception_handler
 def update_workload():
-    repo = Repository()
+    repo = get_workload_repo()
     workload_params = _parse_workload_params(request.get_json())
     workload_id = workload_params['id']
-    workload = repo.get_workload(int(workload_id))
+    workload = loop.run_until_complete(repo.get_workload_async(workload_id))
+
     if workload_params['credentials']:
         workload.credentials = workload_params['credentials']
     if workload_params['mount_points']:
         workload.storage = workload_params['mount_points']
-    repo.update_workload(workload_id, workload)
+
+    loop.run_until_complete(repo.update_workload_async(workload_id, workload))
     return "Workload was updated successfully"
 
 
@@ -76,8 +97,9 @@ def _parse_workload_params(workload_dict):
 @request_exception_handler
 def delete_workload():
     workload_id = request.args.get('id')
-    repo = Repository()
-    repo.delete_workload(int(workload_id))
+    repo = get_workload_repo()
+
+    loop.run_until_complete(repo.delete_workload_async(int(workload_id)))
     return "Workload was deleted successfully"
 
 
@@ -225,5 +247,11 @@ def start_migration(migration_id):
         repo.update_migration(migration_id, migration)
 
 
+def get_workload_repo():
+    asyncio.set_event_loop(loop)
+    client = MongoDbProvider.obtain_client()
+    return WorkloadsRepo(client)
+
+
 if __name__ == "__main__":
-    app.run(host='127.0.0.1', port=80)
+    app.run(host='127.0.0.1', port=8001)
