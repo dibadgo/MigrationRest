@@ -1,6 +1,6 @@
 import os
 import unittest
-from storage.repository import Repository
+from storage.baserepository import BaseRepository
 from migrations import migration
 
 
@@ -22,7 +22,7 @@ class RepositoryTests(unittest.TestCase):
             migration.Migration(cls._mount_points,
                                 cls._test_workload,
                                 cls._test_migration_target)
-        cls._repo = Repository()
+        cls._repo = BaseRepository()
 
     def setUp(self):
         self.clear_files()

@@ -7,7 +7,9 @@ class MongoDbProvider:
     def obtain_client(cls):
         username = "root"
         password = "password"
-        eng = motor.motor_asyncio.AsyncIOMotorClient(
-            'mongodb://{}:{}@{}:{}'.format(username, password, "centos7", 27017))
+        host = "centos7"
+        port = 27017
 
-        return eng
+        conn_string = 'mongodb://{usr}:{passwd}@{host}:{port}'.format(
+            usr=username, passwd=password, host=host, port=port)
+        return motor.motor_asyncio.AsyncIOMotorClient(conn_string)
