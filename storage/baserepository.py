@@ -81,6 +81,6 @@ class BaseRepository(MongoRepository):
         n = await collection.count_documents({})
 
         print('%s documents before calling delete_many()' % n)
-        await collection.delete_many({'_id': document_id})
+        await collection.delete_many({'_id': ObjectId(document_id)})
         print('%s documents after' % (await collection.count_documents({})))
 

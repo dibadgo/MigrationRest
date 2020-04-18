@@ -75,6 +75,15 @@ def update_workload(workload_id):
     return "Workload was updated successfully"
 
 
+@app.route("/workloads/<workload_id>", methods=['DELETE'])
+@request_exception_handler
+def delete_workload(workload_id):
+    repo = get_workload_repo()
+
+    loop.run_until_complete(repo.delete_async(workload_id))
+    return "Workload was deleted successfully"
+
+
 def _parse_workload_params(workload_dict):
     credentials_dict = workload_dict.get('Credentials')
     workload_credentials = None
@@ -93,16 +102,6 @@ def _parse_workload_params(workload_dict):
         'mount_points': mount_points}
 
 
-@app.route("/workloads", methods=['DELETE'])
-@request_exception_handler
-def delete_workload():
-    workload_id = request.args.get('id')
-    repo = get_workload_repo()
-
-    loop.run_until_complete(repo.delete_async(int(workload_id)))
-    return "Workload was deleted successfully"
-
-
 @app.route("/migrations", methods=['GET'])
 @request_exception_handler
 def get_migrations():
@@ -115,7 +114,7 @@ def get_migrations():
 @request_exception_handler
 def get_migration_state(migration_id):
     repo = get_migration_repo()
-    migration = loop.run_until_complete(repo.get_async(int(migration_id)))
+    migration = loop.run_until_complete(repo.get_async(migration_id))
     return migration.migration_state
 
 
@@ -127,12 +126,12 @@ def create_migration():
     workloads_repo = get_workload_repo()
     migration_repo = get_migration_repo()
     source_workload = \
-        loop.run_until_complete(workloads_repo.get_async(int(migration_data['source_id'])))
+        loop.run_until_complete(workloads_repo.get_async(migration_data['source_id']))
 
     migration_target_data = migration_data['migration_target_params']
 
     target_workload = \
-        loop.run_until_complete(migration_repo.get_async(int(migration_target_data['target_vm_id'])))
+        loop.run_until_complete(workloads_repo.get_async(migration_target_data['target_vm_id']))
     migration_target_data.pop('target_vm_id')
 
     migration_target = MigrationTarget(
@@ -147,22 +146,22 @@ def create_migration():
         migration_id)
 
 
-@app.route("/migrations", methods=['PUT'])
+@app.route("/migrations/<migration_id>", methods=['PUT'])
 @request_exception_handler
-def update_migration():
+def update_migration(migration_id):
     migration_data = _parse_migration_params(request.get_json())
 
     workload_repo = get_workload_repo()
     migration_repo = get_migration_repo()
 
-    migration = loop.run_until_complete(migration_repo.get_async(int(migration_data['id'])))
+    migration = loop.run_until_complete(migration_repo.get_async(migration_id))
 
     if migration_data['mount_points']:
         migration.mount_points = migration_data['mount_points']
 
     if migration_data['source_id']:
         source_workload = \
-            loop.run_until_complete(workload_repo.get_async(int(migration_data['source_id'])))
+            loop.run_until_complete(workload_repo.get_async(migration_data['source_id']))
         migration.source = source_workload
 
     if migration_data['migration_target_params']:
@@ -170,7 +169,7 @@ def update_migration():
 
         if migration_target_data['target_vm_id']:
             target_workload = loop.run_until_complete(workload_repo.get_async(
-                int(migration_target_data['target_vm_id'])))
+                migration_target_data['target_vm_id']))
             migration.migration_target.target_vm = target_workload
 
         if migration_target_data['cloud_type']:
@@ -181,7 +180,7 @@ def update_migration():
             migration.migration_target.cloud_credentials = \
                 migration_target_data['cloud_credentials']
 
-    loop.run_until_complete(migration_repo.update_async(migration_data['id'], migration))
+    loop.run_until_complete(migration_repo.update_async(migration_id, migration))
 
     return "Migration updated successfully"
 
@@ -215,38 +214,41 @@ def _parse_migration_target_params(migration_target_dict):
 def delete_migration():
     migration_id = request.args.get('id')
     repo = get_migration_repo()
-    loop.run_until_complete(repo.delete_async(int(migration_id)))
+    loop.run_until_complete(repo.delete_async(migration_id))
     return "Migration was deleted successfully"
 
 
-@app.route("/migrations/run", methods=['POST'])
+@app.route("/migrations/run/<migration_id>", methods=['POST'])
 @request_exception_handler
-def run_migration():
-    migration_id = int(request.args.get('id'))
-    loop.create_task(start_migration(migration_id))
-    # executor.submit(start_migration, migration_id)
+def run_migration(migration_id):
+    # asyncio.create_task(greet_every_two_seconds())  # Only in Python 3.8
+    executor.submit(start_migration, migration_id)
     return "Migration {} started successfully".format(migration_id)
 
 
-async def start_migration(migration_id):
+def start_migration(migration_id):
+    """ Run the migration process
+
+    :param migration_id: Migration id
+    """
     repo = get_migration_repo()
-    migration = loop.run_until_complete(await repo.get_async(migration_id))
+    migration = loop.run_until_complete(repo.get_async(migration_id))
     if migration.migration_state == 'RUNNING':
         print('Migration {} is already running!'.format(migration_id))
         return
     try:
         print('Starting migration {}'.format(migration_id))
         migration.migration_state = 'RUNNING'
-        await repo.update_async(migration_id, migration)
+        loop.run_until_complete(repo.update_async(migration_id, migration))
         migration.run()
         migration.migration_state = 'SUCCESS'
-        await repo.update_async(migration_id, migration)
+        loop.run_until_complete(repo.update_async(migration_id, migration))
         print('Migration completed successfully')
     except Exception as ex:
         print('Error while running migration {migration_id} : {error}'
               .format(migration_id=migration_id, error=ex))
         migration.migration_state = 'ERROR'
-        await repo.update_async(migration_id, migration)
+        loop.run_until_complete(repo.update_async(migration_id, migration))
 
 
 def get_workload_repo():
