@@ -2,12 +2,11 @@ import asyncio
 from flask import Flask, request, jsonify
 from concurrent.futures import ThreadPoolExecutor
 
+from rest.handlers import request_exception_handler
 from storage.migration_repo import MigrationRepo
 from storage.mongo_provider import MongoDbProvider
-from storage.baserepository import BaseRepository
 from migrations.migration import Migration, Workload, Credentials, \
     MountPoint, MigrationTarget
-from handlers import request_exception_handler
 
 from storage.workloads_repo import WorkloadsRepo
 
@@ -264,4 +263,4 @@ def get_migration_repo():
 
 
 if __name__ == "__main__":
-    app.run(host='127.0.0.1', port=8001)
+    app.run(host='0.0.0.0', port=8001)
