@@ -2,8 +2,6 @@ import os
 from enum import Enum
 from time import sleep
 
-from mongoengine import Document
-
 
 class Migration:
     def __init__(self, mount_points, source, migration_target):
