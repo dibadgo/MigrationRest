@@ -1,7 +1,8 @@
-import os
 import unittest
-from storage.repository import Repository
+from unittest.mock import MagicMock
+import asyncio
 from migrations import migration
+from storage.baserepository import BaseRepository
 
 
 class RepositoryTests(unittest.TestCase):
@@ -22,83 +23,152 @@ class RepositoryTests(unittest.TestCase):
             migration.Migration(cls._mount_points,
                                 cls._test_workload,
                                 cls._test_migration_target)
-        cls._repo = Repository()
+        cls.results_mock = CollectionResults()
 
     def setUp(self):
-        self.clear_files()
+        self.results_mock = CollectionResults()
 
-    def tearDown(self):
-        self.clear_files()
+    def _make_collections(self):
 
-    def clear_files(self):
-        if os.path.exists('workloads.data'):
-            os.remove('workloads.data')
-        if os.path.exists('migrations.data'):
-            os.remove('migrations.data')
+        insert_execute_coro = asyncio.coroutine(self.results_mock.insert_res)
+        find_execute_coro = asyncio.coroutine(self.results_mock.find_res)
+        replace_execute_coro = asyncio.coroutine(self.results_mock.replace_res)
+        counts_doc_execute_coro = asyncio.coroutine(self.results_mock.count_res)
+        removed_execute_coro = asyncio.coroutine(self.results_mock.remove_res)
 
-    def test_create_workload(self):
-        w_id = self._repo.create_workload(self._test_workload)
+        collection_mock = MagicMock()
+        collection_mock.insert_one = insert_execute_coro
+        collection_mock.replace_one = replace_execute_coro
+        collection_mock.find_one = find_execute_coro
+        collection_mock.count_documents = counts_doc_execute_coro
+        collection_mock.delete_many = removed_execute_coro
 
-        restored_workload = self._repo.get_workload(w_id)
+        return collection_mock
 
-        self.assertEqual(self._test_workload, restored_workload)
+    def _make_motor_client(self):
+        db_mock = MagicMock()
+        d = {'test_collection': self._make_collections()}
+        db_mock.__getitem__.side_effect = d.__getitem__
+        db_mock.__iter__.side_effect = d.__iter__
 
-    def test_create_workload_with_existing_ip(self):
-        with self.assertRaises(Exception):
-            self._repo.create_workload(self._test_workload)
-            self._repo.create_workload(self._test_workload)
+        motor_mock = MagicMock()
+        motor_mock.mig_database = db_mock
+        return motor_mock
 
-    def test_update_existing_workload(self):
-        w_id = self._repo.create_workload(self._test_workload)
-        self._test_workload.credentials.user_name = 'New User'
+    def test_create_document(self):
 
-        self._repo.update_workload(w_id, self._test_workload)
+        async def run_test():
+            motor_mock = self._make_motor_client()
+            repo = BaseRepository(motor_mock, "test_collection")
+            inserted_id = await repo.create_async(self._test_workload)
 
-        updated_workload = self._repo.get_workload(w_id)
-        self.assertEqual(self._test_workload, updated_workload)
+            assert "object_id" == inserted_id
 
-    def test_update_not_existing_workload(self):
-        with self.assertRaises(Exception):
-            self._repo.update_workload(-42, self._test_workload)
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        loop.run_until_complete(run_test())
 
-    def test_delete_workloads(self):
-        workloads = self._repo.get_workloads()
-        workloads.pop('max_id')
-        for workload_id in workloads:
-            self._repo.delete_workload(workload_id)
+    def test_update_existing_document(self):
 
-        workloads = self._repo.get_workloads()
-        workloads.pop('max_id')
-        self.assertEqual(len(workloads), 0)
+        async def run_test():
+            motor_mock = self._make_motor_client()
+            repo = BaseRepository(motor_mock, "test_collection")
+            inserted_id = await repo._replace_document("5e9b1c836ca6be564403c673", self._test_workload)
 
-    def test_delete_not_existing_workload(self):
-        with self.assertRaises(Exception):
-            self._repo.delete_workload(-42)
+            assert 1 == inserted_id.modified_count
 
-    def test_create_migration(self):
-        m_id = self._repo.create_migration(self._test_migration)
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        loop.run_until_complete(run_test())
 
-        restored_migration = self._repo.get_migration(m_id)
+    def test_update_not_existing_document(self):
 
-        self.assertEqual(self._test_migration, restored_migration)
+        async def run_test():
+            replace_result_mock = MagicMock()
+            replace_result_mock.modified_count = 0
 
-    def test_update_existing_migration(self):
-        m_id = self._repo.create_migration(self._test_migration)
+            self.results_mock.replace_res = MagicMock(return_value=replace_result_mock)
 
-        self._test_migration.migration_target.cloud_credentials\
-            .user_name = 'New test user name'
-        self._repo.update_migration(m_id, self._test_migration)
+            motor_mock = self._make_motor_client()
+            repo = BaseRepository(motor_mock, "test_collection")
 
-        restored_migration = self._repo.get_migration(m_id)
-        self.assertEqual(self._test_migration, restored_migration)
+            inserted_id = await repo._replace_document("5e9b1c836ca6be564403c673", self._test_workload)
 
-    def test_update_not_existing_migration(self):
-        with self.assertRaises(Exception):
-            self._repo.update_migration(-42, self._test_migration)
+            assert 0 == inserted_id.modified_count
 
-    def test_delete_migration(self):
-        with self.assertRaises(Exception):
-            self._repo.delete_migration(-42)
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        loop.run_until_complete(run_test())
+
+    def test_delete_document(self):
+
+        async def run_test():
+            motor_mock = self._make_motor_client()
+            repo = BaseRepository(motor_mock, "test_collection")
+
+            inserted_id = await repo.delete_async("5e9b1c836ca6be564403c673")
+
+            assert 1 == inserted_id
+
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        loop.run_until_complete(run_test())
+
+    def test_delete_not_existing_document(self):
+
+        async def run_test():
+            remove_result_mock = MagicMock()
+            remove_result_mock.side_effect = Exception()
+
+            self.results_mock.remove_res = remove_result_mock
+
+            motor_mock = self._make_motor_client()
+            repo = BaseRepository(motor_mock, "test_collection")
+
+            with self.assertRaises(Exception):
+                await repo.delete_async("5e9b1c836ca6be564403c673")
+
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        loop.run_until_complete(run_test())
+
+
+class CollectionResults:
+
+    def __init__(self, **kwargs):
+        self.insert_res = kwargs.get("insert_res", self._default_insert_mock())
+        self.find_res = kwargs.get("find_res", self._default_find_mock())
+        self.replace_res = kwargs.get("replace_res", self._default_replace_mock())
+        self.count_res = kwargs.get("count_res", self._default_count_mock())
+        self.remove_res = kwargs.get("remove_res", self._default_remove_mock())
+
+    @staticmethod
+    def _default_remove_mock():
+        return MagicMock()
+
+    @staticmethod
+    def _default_count_mock():
+        count_docs_mock = MagicMock()
+        count_docs_mock.side_effect = [3, 2]
+        return count_docs_mock
+
+    @staticmethod
+    def _default_replace_mock():
+        replace_result_mock = MagicMock()
+        replace_result_mock.modified_count = 1
+
+        return MagicMock(return_value=replace_result_mock)
+
+    @staticmethod
+    def _default_find_mock():
+        return MagicMock()
+
+    @staticmethod
+    def _default_insert_mock():
+        document_id = MagicMock()
+        document_id.inserted_id = "object_id"
+
+        return MagicMock(return_value=document_id)
 
 
 if __name__ == '__main__':

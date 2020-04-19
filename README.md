@@ -1,52 +1,117 @@
-Starting rest:
+# Migration Mongo
 
-launch rest.py with python3
+![](https://img.shields.io/badge/python-3.7-yellow)
+![](https://img.shields.io/badge/mongodb-3.6-green)
+![](https://img.shields.io/badge/asyncio-3.4.3-yellow)
+
+This is the sample REST API on the Flask framework based on MongoDb like a persistence layer and asyncio coroutines.
+
+## Project includes:
+* REST API
+* [AsyncIo](https://docs.python.org/3/library/asyncio.html)
+* Persistence layer based on [Mongo DB](https://www.mongodb.com/)
+* Unit test coverage
+* Postman collection to make using the project easier
+
+Well, you could download a postman collection form [here](https://drive.google.com/file/d/1yNv2NFlbhsnT1wv3rCrGHtG9AbCKbcQL/view?usp=sharing)
 
 ## Workloads
 
-1. list all workloads (GET-request): 
+### List all workloads (GET-request): 
 
-curl http://127.0.0.1:80/workloads
+        curl http://127.0.0.1:80/workloads
 
-2. create new workload (POST-request):
+### Create new workload (POST-request):
 
-curl -X POST http://127.0.0.1:80/workloads  -H 'Cache-Control: no-cache' -H 'Content-Type: application/json'   -d '{"ip": "8.800.777.38.38", "Credentials": {"user_name": "user", "password": 
-"password", "domain": "tst.com"}, "Storage": [{"name": "C:\\", "size": 229}]}'
+        curl -X POST http://127.0.0.1:80/workloads 
+         -H 'Cache-Control: no-cache' 
+         -H 'Content-Type: application/json'   
+         -d 'worload_object'
 
-3. update workload (PUT-request)
+In result you will get the workload id like `5e9b1c836ca6be564403c673`
+         
+Workload object example:
 
-curl -X PUT http://127.0.0.1:80/workloads -H 'Content-Type: application/json' -d '{"id": 1, "Credentials": {"user_name": "turbo_user", "password": "turbo_password", "domain": "tst.com"}}'
+    {
+        "ip": "1.1.1.1", 
+        "Credentials": {
+            "user_name": "user", 
+            "password": "password",
+            "domain": "tst.com"
+        }, 
+        "Storage": [
+            {
+                "name": "C:\\", 
+                "size": 11
+            },
+            {
+                "name": "D:\\", 
+                "size": 222
+            }
+        ]
+    }
 
-4. delete workload (DELETE-request)
+### Update workload (PUT-request)
 
-curl -X DELETE 'http://127.0.0.1:80/workloads?id=0'
+        curl -X PUT http://127.0.0.1:80/workloads/5e9b1c836ca6be564403c673
+        -H 'Content-Type: application/json' 
+        -d 'worload_object'
+
+### delete workload (DELETE-request)
+
+        curl -X DELETE 'http://127.0.0.1:80/workloads?id=0'
 
 ## Migrations
 
-1. list all migrations (GET-request):
+### list all migrations (GET-request):
 
-curl 127.0.0.1:80/migrations
+        curl 127.0.0.1:80/migrations
 
-2. create new migration (POST-request):
+### create new migration (POST-request):
+**Note: migration accepts workloads identified by ids, so workloads should be created first.**
 
-Note: migration accepts workloads identified by ids, so workloads should be created first.
+let's assume we added two workloads
 
-let's assume we added two workloads, with ids 1 and 2
+    curl -X POST http://127.0.0.1:80/migrations 
+    -H 'Content-Type: application/json' 
+    -d 'migration_object'
 
-curl -X POST http://127.0.0.1:80/migrations -H 'Content-Type: application/json' -d '{"source_id": 1, "migration_target": {"cloud_credentials": {"user_name": "user", "password": "password", "domain": "tst.com"}, "cloud_type": "azure", "target_vm_id": 2}, "mount_points": [{"name": "C:\\", "size": 229}]}'
+Example of the migration object 
 
-3. update migration (PUT-request)
+    {
+        "source_id": "5e9b1a0aab2830c2284984f8", 
+        "migration_target": {
+            "cloud_credentials": {
+                "user_name": "user", 
+                "password": "password",
+                "domain": "tst.com"
+            }, 
+            "cloud_type": "azure", 
+            "target_vm_id": "5e9b1a4cab2830c2284984fa"
+            
+        }, 
+        "mount_points": [
+            {
+                "name": "C:\\", 
+                "size": 229
+            }
+        ]
+    }
 
-curl -X PUT http://127.0.0.1:80/migrations -H 'Content-Type: application/json' -d '{"id": 0, "migration_target": {"cloud_credentials": {"user_name": "user", "password": "password", "domain": "tst.com"}, "cloud_type": "vsphere", "target_vm_id": 2}, "mount_points": [{"name": "C:\\", "size": 229}]}'
+### Update migration (PUT-request)
 
-4. delete migration (DELETE-request)
+        curl -X PUT http://127.0.0.1:80/migrations/<id>
+        -H 'Content-Type: application/json' 
+        -d 'migration_object'
 
-curl -X DELETE 'http://127.0.0.1:80/migrations?id=0'
+### Delete migration (DELETE-request)
 
-5. run migration (POST-request)
+        curl -X DELETE 'http://127.0.0.1:80/migrations/<id>'
 
-curl -X POST 'http://127.0.0.1:80/migrations/run?id=0'
+### Run migration (POST-request)
 
-6. get migration state (GET-request)
+        curl -X POST 'http://127.0.0.1:80/migrations/run/<id>'
 
-curl http://127.0.0.1:80/migrations/state/0
+### Get migration state (GET-request)
+
+        curl http://127.0.0.1:80/migrations/state/0

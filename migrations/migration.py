@@ -2,6 +2,8 @@ import os
 from enum import Enum
 from time import sleep
 
+from mongoengine import Document
+
 
 class Migration:
     def __init__(self, mount_points, source, migration_target):
@@ -175,12 +177,18 @@ class MigrationState(Enum):
 
 
 class Workload:
+
     def __init__(self, ip, credentials, mount_points):
         if not isinstance(ip, str):
             raise RuntimeError('ip should be a string!')
+        self._id = None
         self._ip = ip
         self.credentials = credentials
         self.storage = mount_points
+
+    @property
+    def id(self):
+        return self._id
 
     @property
     def ip(self):
