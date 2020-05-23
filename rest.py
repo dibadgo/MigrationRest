@@ -252,13 +252,13 @@ def start_migration(migration_id):
 
 def get_workload_repo():
     asyncio.set_event_loop(loop)
-    client = MongoDbProvider.obtain_client()
+    client = MongoDbProvider.get_client()
     return WorkloadsRepo(client)
 
 
 def get_migration_repo():
     asyncio.set_event_loop(loop)
-    client = MongoDbProvider.obtain_client()
+    client = MongoDbProvider.get_client()
     return MigrationRepo(client)
 
 

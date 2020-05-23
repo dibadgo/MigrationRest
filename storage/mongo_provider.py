@@ -1,15 +1,17 @@
-import motor.motor_asyncio
+from os import environ
+from dataclasses import dataclass
+from motor.motor_asyncio import AsyncIOMotorClient
 
 
-class MongoDbProvider:
+@dataclass
+class MotorClientFactory:
+    """Class for configure Motor client for MongoDb"""
 
     @classmethod
-    def obtain_client(cls):
-        username = "root"
-        password = "password"
-        host = "centos7"
-        port = 27017
+    def create_from_env(cls) -> AsyncIOMotorClient:
+        username = environ.get("MM_MONGO_USR") or "root"
+        password = environ.get("MM_MONGO_PASS") or "password"
+        host = environ.get("MM_MONGO_HOST") or "centos7"
+        port = environ.get("MM_MONGO_PORT") or 27017
 
-        conn_string = 'mongodb://{usr}:{passwd}@{host}:{port}'.format(
-            usr=username, passwd=password, host=host, port=port)
-        return motor.motor_asyncio.AsyncIOMotorClient(conn_string)
+        return AsyncIOMotorClient(f'mongodb://{username}:{password}@{host}:{port}')
