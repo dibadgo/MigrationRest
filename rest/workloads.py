@@ -1,6 +1,9 @@
+from typing import List
+
 from fastapi import APIRouter
 
 from binds.WorkloadBind import WorkloadBind
+from models.workload import Workload
 from storage.mongo_provider import MotorClientFactory
 from storage.workloads_repo import WorkloadsRepo
 
@@ -9,7 +12,7 @@ router = APIRouter()
 
 
 @router.get("/workloads")
-async def get_all():
+async def get_all() -> List[Workload]:
     repo = _get_workload_repo()
 
     return [workload.to_dict() for workload in await repo.list_async()]

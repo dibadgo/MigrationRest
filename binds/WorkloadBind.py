@@ -15,7 +15,7 @@ class WorkloadBind(BaseModel):
     def get_workload(self) -> Workload:
         if not self.credentials:
             raise Exception("Credentials should be defined")
-        if not self.storage:
+        if self.storage is None:
             raise Exception("Storage should be defined")
 
-        return Workload(self.ip, self.credentials, self.storage)
+        return Workload(id=None, ip=self.ip, credentials=self.credentials, storage=self.storage)

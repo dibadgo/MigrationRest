@@ -1,148 +1,122 @@
+import asyncio
+from fastapi import APIRouter
 
-@app.route("/models", methods=['POST'])
-@request_exception_handler
-def create_migration(bind: MigrationBind):
-    migration_data = _parse_migration_params(request.get_json())
+from binds.MigrationBind import MigrationBind
+from models.state import MigrationState
+from storage.migration_repo import MigrationRepo
+from storage.mongo_provider import MotorClientFactory
+from storage.workloads_repo import WorkloadsRepo
 
-    workloads_repo = get_workload_repo()
-    migration_repo = get_migration_repo()
-    source_workload = \
-        loop.run_until_complete(workloads_repo.get_async(migration_data['source_id']))
-
-    migration_target_data = migration_data['migration_target_params']
-
-    target_workload = \
-        loop.run_until_complete(workloads_repo.get_async(migration_target_data['target_vm_id']))
-    migration_target_data.pop('target_vm_id')
-
-    migration_target = MigrationTarget(
-        target_vm=target_workload,
-        **migration_target_data)
-
-    migration = Migration(mount_points=migration_data['mount_points'],
-                          source=source_workload,
-                          migration_target=migration_target)
-    migration_id = loop.run_until_complete(migration_repo.create_async(migration))
-    return "Migration created successfully with id: {}".format(
-        migration_id)
+router = APIRouter()
+loop = asyncio.get_event_loop()
 
 
-@app.route("/models/<migration_id>", methods=['PUT'])
-@request_exception_handler
-def update_migration(migration_id):
-    migration_data = _parse_migration_params(request.get_json())
+@router.get("/migrations/state/{migration_id}")
+async def get_migration_state(migration_id):
+    repo = _get_migration_repo()
+    migration = await repo.get_async(migration_id)
 
-    workload_repo = get_workload_repo()
-    migration_repo = get_migration_repo()
+    return migration.migration_state
 
-    migration = loop.run_until_complete(migration_repo.get_async(migration_id))
 
-    if migration_data['mount_points']:
-        migration.mount_points = migration_data['mount_points']
+@router.get("/migrations")
+async def get_migrations():
+    repo = _get_migration_repo()
+    saved_migrations = await repo.list_async()
+    return [m.to_dict() for m in saved_migrations]
 
-    if migration_data['source_id']:
-        source_workload = \
-            loop.run_until_complete(workload_repo.get_async(migration_data['source_id']))
+
+@router.post("/migrations")
+async def create_migration(bind: MigrationBind):
+    workloads_repo = _get_workload_repo()
+    migration_repo = _get_migration_repo()
+
+    source_workload = await workloads_repo.get_async(bind.source_id)
+    target_workload = await workloads_repo.get_async(bind.migration_target.target_vm_id)
+
+    migration = bind.get_migration(source_workload, target_workload)
+
+    migration_id = await migration_repo.create_async(migration)
+    return f"Migration created successfully with id: {migration_id}"
+
+
+@router.patch("/migrations/{migration_id}")
+async def update_migration(migration_id, bind: MigrationBind):
+    workloads_repo = _get_workload_repo()
+    migration_repo = _get_migration_repo()
+
+    migration = await migration_repo.get_async(migration_id)
+
+    if bind.mount_points:
+        migration.mount_points = bind.mount_points
+
+    if bind.source_id:
+        source_workload = await workloads_repo.get_async(bind.source_id)
         migration.source = source_workload
 
-    if migration_data['migration_target_params']:
-        migration_target_data = migration_data['migration_target_params']
-
-        if migration_target_data['target_vm_id']:
-            target_workload = loop.run_until_complete(workload_repo.get_async(
-                migration_target_data['target_vm_id']))
+    if bind.migration_target:
+        if bind.migration_target.target_vm_id:
+            target_workload = await workloads_repo.get_async(bind.migration_target.target_vm_id)
             migration.migration_target.target_vm = target_workload
 
-        if migration_target_data['cloud_type']:
-            migration.migration_target.cloud_type = \
-                migration_target_data['cloud_type']
+        if bind.migration_target.cloud_type:
+            migration.migration_target.cloud_type = bind.migration_target.cloud_type
 
-        if migration_target_data['cloud_credentials']:
-            migration.migration_target.cloud_credentials = \
-                migration_target_data['cloud_credentials']
+        if bind.migration_target.cloud_credentials:
+            migration.migration_target.cloud_credentials = bind.migration_target.cloud_credentials
 
-    loop.run_until_complete(migration_repo.update_async(migration_id, migration))
+    await migration_repo.update_async(migration_id, migration)
 
     return "Migration updated successfully"
 
 
-def _parse_migration_params(migration_dict):
-    mount_points = migration_dict.get('mount_points')
-    if mount_points:
-        mount_points = list(map(
-            lambda x: MountPoint(x.get('name'), x.get('size')),
-            mount_points))
-    migration_target_params = _parse_migration_target_params(
-        migration_dict.get('migration_target'))
-    return {'id': migration_dict.get('id'),
-            'mount_points': mount_points,
-            'source_id': migration_dict.get('source_id'),
-            'migration_target_params': migration_target_params}
+@router.delete("/migrations/{migration_id}")
+async def delete_migration(migration_id: str):
+    repo = _get_migration_repo()
+    await repo.delete_async(migration_id)
 
-
-def _parse_migration_target_params(migration_target_dict):
-    cloud_credentials = None
-    if 'cloud_credentials' in migration_target_dict:
-        cloud_credentials = \
-            Credentials(**migration_target_dict['cloud_credentials'])
-    return {'cloud_type': migration_target_dict.get('cloud_type'),
-            'cloud_credentials': cloud_credentials,
-            'target_vm_id': migration_target_dict.get('target_vm_id')}
-
-
-@app.route("/models", methods=['DELETE'])
-@request_exception_handler
-def delete_migration():
-    migration_id = request.args.get('id')
-    repo = get_migration_repo()
-    loop.run_until_complete(repo.delete_async(migration_id))
     return "Migration was deleted successfully"
 
 
-@app.route("/models/run/<migration_id>", methods=['POST'])
-@request_exception_handler
+@router.post("/migrations/run/{migration_id}")
 def run_migration(migration_id):
-    # asyncio.create_task(greet_every_two_seconds())  # Only in Python 3.8
-    executor.submit(start_migration, migration_id)
+    coro = asyncio.ensure_future(_start_migration_logic(migration_id), loop=loop)
+    loop.run_until_complete(coro)
+
     return "Migration {} started successfully".format(migration_id)
 
 
-def start_migration(migration_id):
+async def _start_migration_logic(migration_id):
     """ Run the migration process
 
     :param migration_id: Migration id
     """
-    repo = get_migration_repo()
-    migration = loop.run_until_complete(repo.get_async(migration_id))
-    if migration.migration_state == 'RUNNING':
+    repo = _get_migration_repo()
+    migration = await repo.get_async(migration_id)
+    if migration.migration_state == MigrationState.RUNNING:
         print('Migration {} is already running!'.format(migration_id))
         return
+
     try:
         print('Starting migration {}'.format(migration_id))
-        migration.migration_state = 'RUNNING'
-        loop.run_until_complete(repo.update_async(migration_id, migration))
+        migration.migration_state = MigrationState.RUNNING
+        await repo.update_async(migration_id, migration)
         migration.run()
-        migration.migration_state = 'SUCCESS'
-        loop.run_until_complete(repo.update_async(migration_id, migration))
+        migration.migration_state = MigrationState.SUCCESS
+        await repo.update_async(migration_id, migration)
         print('Migration completed successfully')
     except Exception as ex:
         print('Error while running migration {migration_id} : {error}'
               .format(migration_id=migration_id, error=ex))
-        migration.migration_state = 'ERROR'
-        loop.run_until_complete(repo.update_async(migration_id, migration))
+        migration.migration_state = MigrationState.ERROR
+        await repo.update_async(migration_id, migration)
 
 
-
-@app.route("/models/state/<migration_id>", methods=['GET'])
-@request_exception_handler
-def get_migration_state(migration_id):
-    repo = get_migration_repo()
-    migration = loop.run_until_complete(repo.get_async(migration_id))
-    return migration.migration_state
-
-
-
-def get_migration_repo():
-    asyncio.set_event_loop(loop)
+def _get_migration_repo():
     client = MotorClientFactory.create_from_env()
     return MigrationRepo(client)
+
+
+def _get_workload_repo():
+    client = MotorClientFactory.create_from_env()
+    return WorkloadsRepo(client)

@@ -1,6 +1,7 @@
 import pickle
 
 from bson import ObjectId
+from pydantic import BaseModel
 
 
 class MongoRepository:
@@ -37,9 +38,11 @@ class MongoRepository:
         return result
 
     @staticmethod
-    def _encode(data):
-        return {"data": pickle.dumps(data)}
+    def _encode(data: BaseModel):
+        return {"data": data.dict()}
 
-    @staticmethod
-    def _decode_document(document):
-        return pickle.loads(document["data"])
+    def _decode_document(self, document):
+        return self.create_model_from_dict(document["data"], str(document["_id"]))
+
+    def create_model_from_dict(self, d: dict, obj_id: str):
+        pass
