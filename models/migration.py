@@ -11,6 +11,7 @@ from models.workload import Workload
 
 
 class Migration(BaseModel):
+    """The migration abstraction described the migration parameters and logic"""
 
     id: Optional[str]
     mount_points: List[MountPoint]
@@ -19,6 +20,14 @@ class Migration(BaseModel):
     migration_state = MigrationState.NOT_STARTED
 
     def run(self, duration_mins=5):
+        """ Start the migration process
+
+        Basically the migration process is about
+        copy the specified storage (mount points) from source Workload to target.
+        We will delay some minutes to simulate the longer operation here.
+
+        :param duration_mins: The numbers of minutes to delay
+        """
         if self.is_running():
             raise RuntimeError("Transaction is already running!")
 
@@ -43,10 +52,22 @@ class Migration(BaseModel):
                 os.remove(migration_file_name)
 
     def is_running(self):
+        """ Check that the migration process is in running state
+
+        :return: Bool
+        """
         return os.path.exists(self._get_filename())
 
     def to_dict(self):
+        """ Convert the migration model to dict
+
+        :return: dict
+        """
         return self.dict(include={'id', 'mount_points', 'source', 'migration_target', 'migration_state'})
 
     def _get_filename(self):
+        """ Make the migration filename (migration lock file)
+
+        :return: migration filename
+        """
         return f'{self.id}.migration'

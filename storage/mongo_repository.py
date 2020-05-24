@@ -5,6 +5,7 @@ from pydantic import BaseModel
 
 
 class MongoRepository:
+    """Abstract Mongo repository which wraps the required operations"""
 
     def __init__(self, mongo_client, collection_name):
         self.mongo_client = mongo_client
@@ -26,8 +27,7 @@ class MongoRepository:
     async def _load_document(self, document_id):
         document = await self._get_collection().find_one({'_id': ObjectId(document_id)})
         if not document:
-            raise RuntimeError('Document with id: {} does not exist!'
-                               .format(document_id))
+            raise RuntimeError(f'Document with id: {document_id} does not exist!')
 
         return self._decode_document(document)
 

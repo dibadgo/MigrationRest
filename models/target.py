@@ -6,6 +6,8 @@ from models.workload import Workload
 
 
 class MigrationTarget(BaseModel):
+    """The model to describe the migration target"""
+
     cloud_type: CloudType
     cloud_credentials: Credentials
     target_vm: Workload

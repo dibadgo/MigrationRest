@@ -5,6 +5,7 @@ from models.credentials import Credentials
 
 
 class Workload(BaseModel):
+    """The abstraction on payload for migration process"""
 
     id: Optional[str]
     ip: str

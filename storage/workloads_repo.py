@@ -3,6 +3,7 @@ from storage.cruid_repository import CruidRepository
 
 
 class WorkloadsRepo(CruidRepository):
+    """The concrete implementation of Workload repo"""
 
     def __init__(self, mongo_client):
         super().__init__(mongo_client, collection_name="workloads")

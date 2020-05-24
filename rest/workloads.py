@@ -13,6 +13,10 @@ router = APIRouter()
 
 @router.get("/workloads")
 async def get_all() -> List[Workload]:
+    """ Returns all workloads
+
+    :return: List of workloads
+    """
     repo = _get_workload_repo()
 
     return [workload.to_dict() for workload in await repo.list_async()]
@@ -20,6 +24,11 @@ async def get_all() -> List[Workload]:
 
 @router.get("/workloads/{workload_id}")
 async def get_workload(workload_id):
+    """ Find the workload by Id
+
+    :param workload_id: Workload id
+    :return: Workload
+    """
     repo = _get_workload_repo()
     workload = await repo.get_async(workload_id)
 
@@ -28,16 +37,27 @@ async def get_workload(workload_id):
 
 @router.post("/workloads")
 async def create_workload(bind: WorkloadBind):
+    """ Create the workload by provided configuration
+
+    :param bind: Configuration
+    :return: Workload model
+    """
     workload = bind.get_workload()
 
     repo = _get_workload_repo()
-    workload_id = await repo.create_async(workload)
+    workload = await repo.create_async(workload)
 
-    return f"Workload was created successfully with id: {workload_id}"
+    return workload.to_dict()
 
 
 @router.patch("/workloads/{workload_id}")
 async def update_workload(workload_id: str, bind: WorkloadBind):
+    """ Modify the workload by the provided configuration
+
+    :param workload_id: Workload id
+    :param bind: new configuration
+    :return: Updated workload model
+    """
     repo = _get_workload_repo()
     workload = await repo.get_async(workload_id)
 
@@ -46,12 +66,17 @@ async def update_workload(workload_id: str, bind: WorkloadBind):
     if bind.storage:
         workload.storage = bind.storage
 
-    await repo.update_async(workload_id, workload)
-    return "Workload was updated successfully"
+    updated_workload = await repo.update_async(workload_id, workload)
+    return updated_workload
 
 
 @router.delete("/workloads/{workload_id}")
 async def delete_workload(workload_id):
+    """ Remove the workload model
+
+    :param workload_id: Worklaod id
+    :return: Result message
+    """
     repo = _get_workload_repo()
 
     await repo.delete_async(workload_id)
