@@ -1,13 +1,17 @@
 import functools
+from starlette.responses import JSONResponse
 
 
 def request_exception_handler(function):
     @functools.wraps(function)
-    def wrapper(*args, **kwargs):
+    async def wrapper(*args, **kwargs):
         try:
-            return function(*args, **kwargs)
+            return await function(*args, **kwargs)
         except Exception as ex:
             message = "Error while processing request: {}".format(ex)
-            return message, 400, {'ContentType': 'text/html'}
+            return JSONResponse(
+                status_code=400,
+                content={"message": message},
+            )
 
     return wrapper
