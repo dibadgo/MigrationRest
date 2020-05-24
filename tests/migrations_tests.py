@@ -1,21 +1,26 @@
 import unittest
-from migrations import migration
+
+import models.credentials
+import models.mount_point
+import models.target
+import models.workload
+from models import migration
 
 
 class MigrationTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls._mount_points = [migration.MountPoint('C:\\', 42)]
-        cls._credentials = migration.Credentials('User',
+        cls._mount_points = [models.mount_point.MountPoint('C:\\', 42)]
+        cls._credentials = models.credentials.Credentials('User',
                                                  'passwrd',
                                                  'xxx.com')
-        cls._test_workload = migration.Workload('111.11.11',
-                                                cls._credentials,
-                                                cls._mount_points)
+        cls._test_workload = models.workload.Workload('111.11.11',
+                                                      cls._credentials,
+                                                      cls._mount_points)
         cls._test_migration_target = \
-            migration.MigrationTarget('vsphere',
-                                      cls._credentials,
-                                      cls._test_workload)
+            models.target.MigrationTarget('vsphere',
+                                          cls._credentials,
+                                          cls._test_workload)
 
     def test_valid_migration(self):
         test_migration = \
@@ -63,18 +68,18 @@ class MigrationTests(unittest.TestCase):
 class MigrationTargetTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        mount_points = [migration.MountPoint('Good name', 42)]
-        cls._credentials = migration.Credentials('User',
+        mount_points = [models.mount_point.MountPoint('Good name', 42)]
+        cls._credentials = models.credentials.Credentials('User',
                                                  'passwrd',
                                                  'xxx.com')
-        cls._test_workload = migration.Workload('111.11.11',
-                                                cls._credentials,
-                                                mount_points)
+        cls._test_workload = models.workload.Workload('111.11.11',
+                                                      cls._credentials,
+                                                      mount_points)
 
     def test_valid_type_credentials_target(self):
-        migration_target = migration.MigrationTarget('vsphere',
-                                                     self._credentials,
-                                                     self._test_workload)
+        migration_target = models.target.MigrationTarget('vsphere',
+                                                         self._credentials,
+                                                         self._test_workload)
 
         self.assertEqual(migration_target.cloud_type, 'vsphere')
         self.assertEqual(migration_target.cloud_credentials,
@@ -84,73 +89,73 @@ class MigrationTargetTests(unittest.TestCase):
 
     def test_invalid_type(self):
         with self.assertRaises(Exception):
-            migration.MigrationTarget('some_bad_type',
-                                      self._credentials,
-                                      self._test_workload)
+            models.target.MigrationTarget('some_bad_type',
+                                          self._credentials,
+                                          self._test_workload)
 
     def test_invalid_credentials(self):
         with self.assertRaises(Exception):
-            migration.MigrationTarget('azure', 42, self._test_workload)
+            models.target.MigrationTarget('azure', 42, self._test_workload)
 
     def test_invalid_target(self):
         with self.assertRaises(Exception):
-            migration.MigrationTarget('aws',
-                                      self._credentials,
+            models.target.MigrationTarget('aws',
+                                          self._credentials,
                                       'something_wrong')
 
 
 class WorkloadTests(unittest.TestCase):
     def test_valid_ip_credentials_storage(self):
-        credentials = migration.Credentials('User',
+        credentials = models.credentials.Credentials('User',
                                             'passwrd',
                                             'xxx.com')
-        mount_points = [migration.MountPoint('Good name', 42)]
-        test_workload = migration.Workload('111.11.11',
-                                           credentials,
-                                           mount_points)
+        mount_points = [models.mount_point.MountPoint('Good name', 42)]
+        test_workload = models.workload.Workload('111.11.11',
+                                                 credentials,
+                                                 mount_points)
         self.assertEqual(test_workload.ip, '111.11.11')
         self.assertEqual(test_workload.credentials, credentials)
         self.assertEqual(test_workload.storage, mount_points)
 
     def test_attempt_to_change_ip(self):
-        credentials = migration.Credentials('User',
+        credentials = models.credentials.Credentials('User',
                                             'passwrd',
                                             'xxx.com')
-        mount_points = [migration.MountPoint('Good name', 42)]
-        test_workload = migration.Workload('111.11.11',
-                                           credentials,
-                                           mount_points)
+        mount_points = [models.mount_point.MountPoint('Good name', 42)]
+        test_workload = models.workload.Workload('111.11.11',
+                                                 credentials,
+                                                 mount_points)
 
         with self.assertRaises(Exception):
             test_workload.ip = 'New ip'
 
     def test_invalid_ip(self):
-        credentials = migration.Credentials('User',
+        credentials = models.credentials.Credentials('User',
                                             'passwrd',
                                             'xxx.com')
-        mount_points = [migration.MountPoint('Good name', 42)]
+        mount_points = [models.mount_point.MountPoint('Good name', 42)]
 
         with self.assertRaises(Exception):
-            migration.Workload(None, credentials, mount_points)
+            models.workload.Workload(None, credentials, mount_points)
 
     def test_invalid_credentials(self):
-        mount_points = [migration.MountPoint('Good name', 42)]
+        mount_points = [models.mount_point.MountPoint('Good name', 42)]
 
         with self.assertRaises(Exception):
-            migration.Workload('111.11.11', None, mount_points)
+            models.workload.Workload('111.11.11', None, mount_points)
 
     def test_invalid_storage(self):
-        credentials = migration.Credentials('User',
+        credentials = models.credentials.Credentials('User',
                                             'passwrd',
                                             'xxx.com')
 
         with self.assertRaises(Exception):
-            migration.Workload('111.11.11', credentials, None)
+            models.workload.Workload('111.11.11', credentials, None)
 
 
 class CredentialsTests(unittest.TestCase):
     def test_valid_usrname_password_domain(self):
-        credentials = migration.Credentials('User',
+        credentials = models.credentials.Credentials('User',
                                             'passwrd',
                                             'xxx.com')
 
@@ -160,31 +165,31 @@ class CredentialsTests(unittest.TestCase):
 
     def test_invalid_username(self):
         with self.assertRaises(Exception):
-            migration.Credentials(None, 'passwrd', 'xxx.com')
+            models.credentials.Credentials(None, 'passwrd', 'xxx.com')
 
     def test_invalid_password(self):
         with self.assertRaises(Exception):
-            migration.Credentials('usr', None, 'xxx.com')
+            models.credentials.Credentials('usr', None, 'xxx.com')
 
     def test_invalid_domain(self):
         with self.assertRaises(Exception):
-            migration.Credentials('usr', 'passwrd', None)
+            models.credentials.Credentials('usr', 'passwrd', None)
 
 
 class MountPointTests(unittest.TestCase):
     def test_valid_name_and_size(self):
-        mount_point = migration.MountPoint('Good name', 42)
+        mount_point = models.mount_point.MountPoint('Good name', 42)
 
         self.assertEqual(mount_point.name, 'Good name')
         self.assertEqual(mount_point.size, 42)
 
     def test_invalid_name(self):
         with self.assertRaises(Exception):
-            migration.MountPoint(423, 42)
+            models.mount_point.MountPoint(423, 42)
 
     def test_invalid_size(self):
         with self.assertRaises(Exception):
-            migration.MountPoint('Good name', 'bad size')
+            models.mount_point.MountPoint('Good name', 'bad size')
 
 
 if __name__ == '__main__':

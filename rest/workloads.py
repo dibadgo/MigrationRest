@@ -7,7 +7,9 @@ from main import app
 from rest.handlers import request_exception_handler
 from storage.migration_repo import MigrationRepo
 from storage.mongo_provider import MotorClientFactory
-from migrations.migration import Workload, Credentials, MountPoint
+from models.mount_point import MountPoint
+from models.credentials import Credentials
+from models.workload import Workload
 from storage.workloads_repo import WorkloadsRepo
 
 
@@ -22,7 +24,7 @@ router = APIRouter()
 
 
 @router.get("/workloads")
-async def get_workloads():
+async def get_all():
     repo = _get_workload_repo()
     saved_workloads = await repo.list_async()
 
@@ -48,8 +50,8 @@ async def create_workload(workload: Workload):
     return f"Workload was created successfully with id: {workload_id}"
 
 
-@router.put("/workloads/<workload_id>")
-def update_workload(workload_id: str, bind: WorkloadBind):
+@router.put("/workloads/{workload_id>}")
+async def update_workload(workload_id: str, bind: WorkloadBind):
     repo = _get_workload_repo()
     workload_params = _parse_workload_params(request.get_json())
     workload = loop.run_until_complete(repo.get_async(workload_id))
@@ -59,15 +61,15 @@ def update_workload(workload_id: str, bind: WorkloadBind):
     if workload_params['mount_points']:
         workload.storage = workload_params['mount_points']
 
-    loop.run_until_complete(repo.update_async(workload_id, workload))
+    await repo.update_async(workload_id, workload)
     return "Workload was updated successfully"
 
 
-@router.delete("/workloads/<workload_id>")
-def delete_workload(workload_id):
+@router.delete("/workloads/{workload_id>}")
+async def delete_workload(workload_id):
     repo = _get_workload_repo()
 
-    loop.run_until_complete(repo.delete_async(workload_id))
+    await repo.delete_async(workload_id)
     return "Workload was deleted successfully"
 
 

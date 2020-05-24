@@ -1,5 +1,5 @@
 from binds import TargetBind
-from migrations.migration import MountPoint
+from models.mount_point import MountPoint
 from dataclasses import dataclass
 
 

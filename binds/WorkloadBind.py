@@ -1,8 +1,8 @@
 from dataclasses import dataclass
 from typing import List
 from pydantic import BaseModel
-from migrations.migration import Credentials, MountPoint
-
+from models.mount_point import MountPoint
+from models.credentials import Credentials
 
 
 class Credentials1(BaseModel):
@@ -14,7 +14,6 @@ class Credentials1(BaseModel):
 class MountPoint1(BaseModel):
     name: str
     size: int
-
 
 
 class WorkloadBind(BaseModel):

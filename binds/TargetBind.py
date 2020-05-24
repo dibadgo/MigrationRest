@@ -1,5 +1,6 @@
 from dataclasses import dataclass
-from migrations.migration import Credentials, CloudType
+from models.clouds import CloudType
+from models.credentials import Credentials
 
 
 @dataclass

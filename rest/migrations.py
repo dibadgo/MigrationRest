@@ -1,5 +1,5 @@
 
-@app.route("/migrations", methods=['POST'])
+@app.route("/models", methods=['POST'])
 @request_exception_handler
 def create_migration(bind: MigrationBind):
     migration_data = _parse_migration_params(request.get_json())
@@ -27,7 +27,7 @@ def create_migration(bind: MigrationBind):
         migration_id)
 
 
-@app.route("/migrations/<migration_id>", methods=['PUT'])
+@app.route("/models/<migration_id>", methods=['PUT'])
 @request_exception_handler
 def update_migration(migration_id):
     migration_data = _parse_migration_params(request.get_json())
@@ -90,7 +90,7 @@ def _parse_migration_target_params(migration_target_dict):
             'target_vm_id': migration_target_dict.get('target_vm_id')}
 
 
-@app.route("/migrations", methods=['DELETE'])
+@app.route("/models", methods=['DELETE'])
 @request_exception_handler
 def delete_migration():
     migration_id = request.args.get('id')
@@ -99,7 +99,7 @@ def delete_migration():
     return "Migration was deleted successfully"
 
 
-@app.route("/migrations/run/<migration_id>", methods=['POST'])
+@app.route("/models/run/<migration_id>", methods=['POST'])
 @request_exception_handler
 def run_migration(migration_id):
     # asyncio.create_task(greet_every_two_seconds())  # Only in Python 3.8
@@ -133,7 +133,7 @@ def start_migration(migration_id):
 
 
 
-@app.route("/migrations/state/<migration_id>", methods=['GET'])
+@app.route("/models/state/<migration_id>", methods=['GET'])
 @request_exception_handler
 def get_migration_state(migration_id):
     repo = get_migration_repo()
