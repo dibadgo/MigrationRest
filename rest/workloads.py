@@ -1,4 +1,8 @@
 import asyncio
+
+from fastapi import APIRouter
+
+from binds.WorkloadBind import WorkloadBind
 from main import app
 from rest.handlers import request_exception_handler
 from storage.migration_repo import MigrationRepo
@@ -7,51 +11,46 @@ from migrations.migration import Workload, Credentials, MountPoint
 from storage.workloads_repo import WorkloadsRepo
 
 
-@app.route("/")
-def index():
-    return "Hi, I'm ready!"
+router = APIRouter()
+
+#
+# @router.post("/workloads22", tags=["workloads22"])
+# def test_method(workload: WorkloadBind):
+#     print(workload)
+#
+#     return MountPoint("ololo", 123)
 
 
-@app.route("/workloads", methods=['GET'])
-@request_exception_handler
+@router.get("/workloads")
 async def get_workloads():
-    repo = get_workload_repo()
+    repo = _get_workload_repo()
     saved_workloads = await repo.list_async()
 
-    return [workload.to_dict() for workload in saved_workloads]
+    return [workload.to_dict() for workload in saved_workloads] # TODO try with yield from
 
 
-@app.route("/workloads/<workload_id>", methods=['GET'])
-@request_exception_handler
-def get_workload(workload_id):
-    print(request)
-
-    repo = get_workload_repo()
+@router.get("/workloads/{workload_id}")
+async def get_workload(workload_id):
+    repo = _get_workload_repo()
     workload = await repo.get_async(workload_id)
 
     return workload.to_dict()
 
 
-@app.route("/workloads", methods=['POST'])
-@request_exception_handler
-def create_workload():
-    print(request)
-
-    workload_params = _parse_workload_params(request.get_json())
-    workload_params.pop('id')
-
-    workload = Workload(**workload_params)
-    repo = get_workload_repo()
+@router.post("/workloads")
+async def create_workload(workload: Workload):
+    # workload: WorkloadBind
+    # workload = Workload(**workload_params)
+    repo = _get_workload_repo()
 
     workload_id = await repo.create_async(workload)
 
     return f"Workload was created successfully with id: {workload_id}"
 
 
-@app.route("/workloads/<workload_id>", methods=['PUT'])
-@request_exception_handler
-def update_workload(workload_id):
-    repo = get_workload_repo()
+@router.put("/workloads/<workload_id>")
+def update_workload(workload_id: str, bind: WorkloadBind):
+    repo = _get_workload_repo()
     workload_params = _parse_workload_params(request.get_json())
     workload = loop.run_until_complete(repo.get_async(workload_id))
 
@@ -64,10 +63,9 @@ def update_workload(workload_id):
     return "Workload was updated successfully"
 
 
-@app.route("/workloads/<workload_id>", methods=['DELETE'])
-@request_exception_handler
+@router.delete("/workloads/<workload_id>")
 def delete_workload(workload_id):
-    repo = get_workload_repo()
+    repo = _get_workload_repo()
 
     loop.run_until_complete(repo.delete_async(workload_id))
     return "Workload was deleted successfully"
@@ -91,30 +89,6 @@ def _parse_workload_params(workload_dict):
         'mount_points': mount_points}
 
 
-@app.route("/migrations", methods=['GET'])
-@request_exception_handler
-def get_migrations():
-    repo = get_migration_repo()
-    saved_migrations = loop.run_until_complete(repo.list_async())
-    return [m.to_dict() for m in saved_migrations]
-
-
-@app.route("/migrations/state/<migration_id>", methods=['GET'])
-@request_exception_handler
-def get_migration_state(migration_id):
-    repo = get_migration_repo()
-    migration = loop.run_until_complete(repo.get_async(migration_id))
-    return migration.migration_state
-
-
-def get_workload_repo():
-    asyncio.set_event_loop(loop)
+def _get_workload_repo():
     client = MotorClientFactory.create_from_env()
     return WorkloadsRepo(client)
-
-
-def get_migration_repo():
-    asyncio.set_event_loop(loop)
-    client = MotorClientFactory.create_from_env()
-    return MigrationRepo(client)
-

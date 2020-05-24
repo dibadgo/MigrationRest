@@ -131,3 +131,18 @@ def start_migration(migration_id):
         migration.migration_state = 'ERROR'
         loop.run_until_complete(repo.update_async(migration_id, migration))
 
+
+
+@app.route("/migrations/state/<migration_id>", methods=['GET'])
+@request_exception_handler
+def get_migration_state(migration_id):
+    repo = get_migration_repo()
+    migration = loop.run_until_complete(repo.get_async(migration_id))
+    return migration.migration_state
+
+
+
+def get_migration_repo():
+    asyncio.set_event_loop(loop)
+    client = MotorClientFactory.create_from_env()
+    return MigrationRepo(client)
