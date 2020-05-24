@@ -12,6 +12,6 @@ class MotorClientFactory:
         username = environ.get("MM_MONGO_USR") or "root"
         password = environ.get("MM_MONGO_PASS") or "password"
         host = environ.get("MM_MONGO_HOST") or "centos7"
-        port = environ.get("MM_MONGO_PORT") or 27017
+        port = int(environ.get("MM_MONGO_PORT")) or 27017
 
         return AsyncIOMotorClient(f'mongodb://{username}:{password}@{host}:{port}')
