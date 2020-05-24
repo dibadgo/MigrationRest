@@ -1,4 +1,6 @@
 import asyncio
+import logging
+
 from fastapi import APIRouter
 
 from binds.MigrationBind import MigrationBind
@@ -94,20 +96,21 @@ async def _start_migration_logic(migration_id):
     repo = _get_migration_repo()
     migration = await repo.get_async(migration_id)
     if migration.migration_state == MigrationState.RUNNING:
-        print('Migration {} is already running!'.format(migration_id))
+        logging.error(f'Migration {migration_id} is already running!')
         return
 
     try:
-        print('Starting migration {}'.format(migration_id))
+        logging.info(f'Starting migration {migration_id}')
         migration.migration_state = MigrationState.RUNNING
         await repo.update_async(migration_id, migration)
+
         migration.run()
+
         migration.migration_state = MigrationState.SUCCESS
         await repo.update_async(migration_id, migration)
-        print('Migration completed successfully')
+        logging.info(f'The migration {migration_id} completed successfully')
     except Exception as ex:
-        print('Error while running migration {migration_id} : {error}'
-              .format(migration_id=migration_id, error=ex))
+        logging.error(f'Error while running migration {migration_id} : {ex}')
         migration.migration_state = MigrationState.ERROR
         await repo.update_async(migration_id, migration)
 

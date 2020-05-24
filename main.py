@@ -6,7 +6,7 @@ from rest import workloads, migrations
 app = FastAPI()
 
 
-@app.route("/")
+@app.get("/")
 def index():
     return "Hi, I'm ready! Based on FastAPI"
 
