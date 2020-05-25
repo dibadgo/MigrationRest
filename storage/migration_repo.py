@@ -1,4 +1,5 @@
 from binds.MigrationBind import MigrationBind
+from binds.TargetBind import TargetBind
 from models.migration import Migration
 from models.workload import Workload
 from storage.cruid_repository import CruidRepository
@@ -26,8 +27,22 @@ class MigrationRepo(CruidRepository):
         source_workload, target_workload = await self._get_source_and_target(bind)
         return bind.get_migration(source_workload, target_workload)
 
-    async def create_async(self, document: MigrationBind) -> Migration:
-        return await super().create_async(document)
+    async def save_migration_async(self, migration: Migration) -> Migration:
+        target = TargetBind(
+            target_vm_id=migration.migration_target.target_vm.id,
+            cloud_credentials=migration.migration_target.cloud_credentials,
+            cloud_type=migration.migration_target.cloud_type
+        )
+
+        bind = MigrationBind(
+            id=migration.id,
+            mount_points=migration.mount_points,
+            source_id=migration.source.id,
+            migration_target=target,
+            state=migration.migration_state
+        )
+
+        return await self.update_async(bind.id, bind)
 
     async def update_async(self, document_id, document: MigrationBind) -> Migration:
         old_bind = await super().get_async(document_id)

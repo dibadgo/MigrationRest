@@ -1,13 +1,13 @@
 import asyncio
-import logging
 
 from fastapi import APIRouter
 
 from binds.MigrationBind import MigrationBind
-from models.state import MigrationState
+from models.migration_manager import MigrationManager
 from storage.migration_repo import MigrationRepo
 from storage.mongo_provider import MotorClientFactory
 from storage.workloads_repo import WorkloadsRepo
+
 
 router = APIRouter()
 loop = asyncio.get_event_loop()
@@ -24,6 +24,21 @@ async def get_migration_state(migration_id):
     migration = await repo.get_async(migration_id)
 
     return migration.migration_state
+
+
+@router.post("/migrations/run/{migration_id}")
+def run_migration(migration_id):
+    """ Run the migration process in foreground
+
+    :param migration_id: Migration id
+    :return: String message
+    """
+    repo = _get_migration_repo()
+    manager = MigrationManager(repo)
+    coro = asyncio.ensure_future(manager.start_migration_async(migration_id), loop=loop)
+    loop.run_until_complete(coro)
+
+    return f"The migration {migration_id} started successfully"
 
 
 @router.get("/migrations")
@@ -76,46 +91,6 @@ async def delete_migration(migration_id: str):
     await repo.delete_async(migration_id)
 
     return "Migration was deleted successfully"
-
-
-@router.post("/migrations/run/{migration_id}")
-def run_migration(migration_id):
-    """ Run the migration process in foreground
-
-    :param migration_id: Migration id
-    :return: String message
-    """
-    coro = asyncio.ensure_future(_start_migration_logic(migration_id), loop=loop)
-    loop.run_until_complete(coro)
-
-    return f"The migration {migration_id} started successfully"
-
-
-async def _start_migration_logic(migration_id):
-    """ Run the migration process
-
-    :param migration_id: Migration id
-    """
-    repo = _get_migration_repo()
-    migration = await repo.get_async(migration_id)
-    if migration.migration_state == MigrationState.RUNNING:
-        logging.error(f'Migration {migration_id} is already running!')
-        return
-
-    try:
-        logging.info(f'Starting migration {migration_id}')
-        migration.migration_state = MigrationState.RUNNING
-        await repo.update_async(migration_id, migration)
-
-        migration.run()
-
-        migration.migration_state = MigrationState.SUCCESS
-        await repo.update_async(migration_id, migration)
-        logging.info(f'The migration {migration_id} completed successfully')
-    except Exception as ex:
-        logging.error(f'Error while running migration {migration_id} : {ex}')
-        migration.migration_state = MigrationState.ERROR
-        await repo.update_async(migration_id, migration)
 
 
 def _get_migration_repo() -> MigrationRepo:
