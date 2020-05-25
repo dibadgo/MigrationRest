@@ -44,15 +44,9 @@ async def create_migration(bind: MigrationBind):
     :param bind: Migration configuration
     :return: Migration model
     """
-    workloads_repo = _get_workload_repo()
     migration_repo = _get_migration_repo()
 
-    source_workload = await workloads_repo.get_async(bind.source_id)
-    target_workload = await workloads_repo.get_async(bind.migration_target.target_vm_id)
-
-    migration = bind.get_migration(source_workload, target_workload)
-
-    created_migration = await migration_repo.create_async(migration)
+    created_migration = await migration_repo.create_async(bind)
     return created_migration
 
 
@@ -64,30 +58,9 @@ async def update_migration(migration_id, bind: MigrationBind):
     :param bind: New migration configuration
     :return: Migration model
     """
-    workloads_repo = _get_workload_repo()
     migration_repo = _get_migration_repo()
 
-    migration = await migration_repo.get_async(migration_id)
-
-    if bind.mount_points:
-        migration.mount_points = bind.mount_points
-
-    if bind.source_id:
-        source_workload = await workloads_repo.get_async(bind.source_id)
-        migration.source = source_workload
-
-    if bind.migration_target:
-        if bind.migration_target.target_vm_id:
-            target_workload = await workloads_repo.get_async(bind.migration_target.target_vm_id)
-            migration.migration_target.target_vm = target_workload
-
-        if bind.migration_target.cloud_type:
-            migration.migration_target.cloud_type = bind.migration_target.cloud_type
-
-        if bind.migration_target.cloud_credentials:
-            migration.migration_target.cloud_credentials = bind.migration_target.cloud_credentials
-
-    updated_migration = await migration_repo.update_async(migration_id, migration)
+    updated_migration = await migration_repo.update_async(migration_id, bind)
 
     return updated_migration
 
@@ -110,12 +83,12 @@ def run_migration(migration_id):
     """ Run the migration process in foreground
 
     :param migration_id: Migration id
-    :return: Message
+    :return: String message
     """
     coro = asyncio.ensure_future(_start_migration_logic(migration_id), loop=loop)
     loop.run_until_complete(coro)
 
-    return "Migration {} started successfully".format(migration_id)
+    return f"The migration {migration_id} started successfully"
 
 
 async def _start_migration_logic(migration_id):
@@ -145,11 +118,13 @@ async def _start_migration_logic(migration_id):
         await repo.update_async(migration_id, migration)
 
 
-def _get_migration_repo():
+def _get_migration_repo() -> MigrationRepo:
     client = MotorClientFactory.create_from_env()
-    return MigrationRepo(client)
+    workload_repo = _get_workload_repo(client)
+    return MigrationRepo(client, workload_repo)
 
 
-def _get_workload_repo():
-    client = MotorClientFactory.create_from_env()
+def _get_workload_repo(client=None) -> WorkloadsRepo:
+    if not client:
+        client = MotorClientFactory.create_from_env()
     return WorkloadsRepo(client)

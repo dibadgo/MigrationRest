@@ -63,7 +63,7 @@ class Migration(BaseModel):
 
         :return: dict
         """
-        d = self.dict(include={'mount_points', 'migration_state'})
+        d = self.dict(include={'id', 'mount_points', 'migration_state'})
         d["workload"] = self.source.id
         d["migration_target"] = self.migration_target.to_dict()
 
