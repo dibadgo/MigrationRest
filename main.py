@@ -16,8 +16,8 @@ def index():
 @app.exception_handler(Exception)
 async def unicorn_exception_handler(request: Request, exc: Exception):
     return JSONResponse(
-        status_code=418,
-        content={"message": f"Oops! {exc} did something. There goes a rainbow..."},
+        status_code=400,
+        content={"message": f"Hands up! {exc}"},
     )
 
 

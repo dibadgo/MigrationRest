@@ -1,3 +1,4 @@
+import logging
 from os import environ
 from dataclasses import dataclass
 from motor.motor_asyncio import AsyncIOMotorClient
@@ -13,9 +14,12 @@ class MotorClientFactory:
 
         :return: Motor client
         """
-        username = environ.get("MM_MONGO_USR", "root")
-        password = environ.get("MM_MONGO_PASS", "password")
-        host = environ.get("MM_MONGO_HOST", "centos7")
-        port = environ.get("MM_MONGO_PORT", 27017)
+        username = environ.get("MM_MONGO_USR")
+        password = environ.get("MM_MONGO_PASS")
+        host = environ.get("MM_MONGO_HOST")
+        port = environ.get("MM_MONGO_PORT")
+
+        connection_string = f'mongodb://{username}:{password}@{host}:{port}'
+        logging.debug(f"Mongo connection string {connection_string}")
 
         return AsyncIOMotorClient(f'mongodb://{username}:{password}@{host}:{port}')

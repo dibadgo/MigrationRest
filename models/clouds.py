@@ -1,7 +1,7 @@
 from enum import Enum
 
 
-class CloudType(Enum):
+class CloudType(str, Enum):
     """The supported cloud type definition"""
 
     AWS = 'aws'

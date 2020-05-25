@@ -5,7 +5,6 @@ from fastapi import APIRouter
 
 from binds.MigrationBind import MigrationBind
 from models.state import MigrationState
-from rest.handlers import request_exception_handler
 from storage.migration_repo import MigrationRepo
 from storage.mongo_provider import MotorClientFactory
 from storage.workloads_repo import WorkloadsRepo

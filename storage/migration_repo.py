@@ -6,8 +6,11 @@ class MigrationRepo(CruidRepository):
     """The concrete implementation of Migration repo"""
 
     def __init__(self, mongo_client):
-        super().__init__(mongo_client, collection_name="models")
+        super().__init__(mongo_client, collection_name="migration")
 
     def create_model_from_dict(self, d: dict, obj_id: str):
         d["id"] = obj_id
         return Migration(**d)
+
+    def model_to_dict(self, model: Migration) -> dict:
+        return model.dict()

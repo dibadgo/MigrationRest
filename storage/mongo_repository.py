@@ -37,12 +37,14 @@ class MongoRepository:
         result = await collection.replace_one({'_id': ObjectId(document_id)}, self._encode(document))
         return result
 
-    @staticmethod
-    def _encode(data: BaseModel):
-        return {"data": data.dict()}
+    def _encode(self, data: BaseModel):
+        return {"data": self.model_to_dict(data)}
 
     def _decode_document(self, document):
         return self.create_model_from_dict(document["data"], str(document["_id"]))
+
+    def model_to_dict(self, model: BaseModel) -> dict:
+        return model.dict()
 
     def create_model_from_dict(self, d: dict, obj_id: str):
         pass

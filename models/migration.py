@@ -15,8 +15,8 @@ class Migration(BaseModel):
 
     id: Optional[str]
     mount_points: List[MountPoint]
-    source = Workload
-    migration_target = MigrationTarget
+    source: Workload
+    migration_target: MigrationTarget
     migration_state = MigrationState.NOT_STARTED
 
     def run(self, duration_mins=5):
@@ -63,7 +63,11 @@ class Migration(BaseModel):
 
         :return: dict
         """
-        return self.dict(include={'id', 'mount_points', 'source', 'migration_target', 'migration_state'})
+        d = self.dict(include={'mount_points', 'migration_state'})
+        d["workload"] = self.source.id
+        d["migration_target"] = self.migration_target.to_dict()
+
+        return d
 
     def _get_filename(self):
         """ Make the migration filename (migration lock file)
