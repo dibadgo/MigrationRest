@@ -5,7 +5,7 @@
 * GET *\<server\>:\<port\>/docs* - The API documentation generated automatically by [Swagger](https://swagger.io/)
 
 ### Workloads 
-The namespace for manage workloads models
+The namespace for manage of workloads models
 
 * POST *workloads* - Create a workload
 * GET *workloads/<workload_id>* - Search the workload by id

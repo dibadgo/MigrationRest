@@ -47,4 +47,4 @@ class MongoRepository:
         return model.dict()
 
     def create_model_from_dict(self, d: dict, obj_id: str):
-        pass
+        return d

@@ -33,7 +33,6 @@ class Migration(BaseModel):
 
         migration_file_name = self._get_filename()
         try:
-            sleep(duration_mins * 60)
             open(migration_file_name, 'a').close()
 
             if 'c:\\' not in \
@@ -56,7 +55,7 @@ class Migration(BaseModel):
 
         :return: Bool
         """
-        return os.path.exists(self._get_filename())
+        return self.migration_state == MigrationState.RUNNING or os.path.exists(self._get_filename())
 
     def to_dict(self):
         """ Convert the migration model to dict

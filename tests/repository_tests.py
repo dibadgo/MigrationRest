@@ -2,32 +2,45 @@ import unittest
 from unittest.mock import MagicMock
 import asyncio
 
-import models.credentials
-import models.mount_point
-import models.target
-import models.workload
-from models import migration
+from models.clouds import CloudType
+from models.credentials import Credentials
+from models.migration import Migration
+from models.mount_point import MountPoint
+from models.state import MigrationState
+from models.target import MigrationTarget
+from models.workload import Workload
 from storage.cruid_repository import CruidRepository
+
+
+TEST_OBJECT_ID = "5e9b1c836ca6be564403c673"
 
 
 class RepositoryTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls._mount_points = [models.mount_point.MountPoint('Good name', 42)]
-        cls._credentials = models.credentials.Credentials('User',
-                                                 'passwrd',
-                                                 'xxx.com')
-        cls._test_workload = models.workload.Workload('111.11.11',
-                                                      cls._credentials,
-                                                      cls._mount_points)
-        cls._test_migration_target = \
-            models.target.MigrationTarget('vsphere',
-                                          cls._credentials,
-                                          cls._test_workload)
-        cls._test_migration = \
-            migration.Migration(cls._mount_points,
-                                cls._test_workload,
-                                cls._test_migration_target)
+        cls._mount_points = [MountPoint(name='C:\\', size=42)]
+        cls._credentials = Credentials(
+            user_name='User',
+            password='passwrd',
+            domain='xxx.com'
+        )
+        cls._test_workload = Workload(
+            id=None,
+            ip='111.11.11',
+            credentials=cls._credentials,
+            storage=cls._mount_points
+        )
+        cls._test_migration_target = MigrationTarget(
+            cloud_type=CloudType.VSPHERE,
+            cloud_credentials=cls._credentials,
+            target_vm=cls._test_workload
+        )
+        cls._test_migration = Migration(
+            mount_points=cls._mount_points,
+            source=cls._test_workload,
+            migration_target=cls._test_migration_target,
+            migration_state=MigrationState.NOT_STARTED
+        )
         cls.results_mock = CollectionResults()
 
     def setUp(self):
@@ -67,7 +80,7 @@ class RepositoryTests(unittest.TestCase):
             repo = CruidRepository(motor_mock, "test_collection")
             inserted_id = await repo.create_async(self._test_workload)
 
-            assert "object_id" == inserted_id
+            assert TEST_OBJECT_ID == inserted_id.id
 
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
@@ -166,12 +179,15 @@ class CollectionResults:
 
     @staticmethod
     def _default_find_mock():
-        return MagicMock()
+        document_id = MagicMock()
+        document_id.id = TEST_OBJECT_ID
+
+        return document_id
 
     @staticmethod
     def _default_insert_mock():
         document_id = MagicMock()
-        document_id.inserted_id = "object_id"
+        document_id.inserted_id = TEST_OBJECT_ID
 
         return MagicMock(return_value=document_id)
 
