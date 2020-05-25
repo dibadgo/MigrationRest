@@ -13,8 +13,9 @@ This is the sample REST API based on FastAPI framework and MongoDb like a persis
 * [Pydantic](https://pydantic-docs.helpmanual.io/) models
 * [AsyncIo](https://docs.python.org/3/library/asyncio.html)
 * Persistence layer based on [Mongo DB](https://www.mongodb.com/)
-* Unit test coverage (In progress)
+* Unit test coverage (In progress, 50% done)
 * Postman collection to make using the project easier
+* Dependency injection (FastApi)
 
 ## Deploy
 
