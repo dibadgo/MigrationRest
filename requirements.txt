@@ -1,3 +1,5 @@
 asyncio==3.4.3
 motor==2.1.0
-Flask==1.1.2
+fastapi==0.55.1
+pydantic==1.5.1
+uvicorn==0.11.5

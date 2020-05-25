@@ -1,28 +1,46 @@
 import unittest
 from unittest.mock import MagicMock
 import asyncio
-from migrations import migration
-from storage.baserepository import BaseRepository
+
+from models.clouds import CloudType
+from models.credentials import Credentials
+from models.migration import Migration
+from models.mount_point import MountPoint
+from models.state import MigrationState
+from models.target import MigrationTarget
+from models.workload import Workload
+from storage.cruid_repository import CruidRepository
+
+
+TEST_OBJECT_ID = "5e9b1c836ca6be564403c673"
 
 
 class RepositoryTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls._mount_points = [migration.MountPoint('Good name', 42)]
-        cls._credentials = migration.Credentials('User',
-                                                 'passwrd',
-                                                 'xxx.com')
-        cls._test_workload = migration.Workload('111.11.11',
-                                                cls._credentials,
-                                                cls._mount_points)
-        cls._test_migration_target = \
-            migration.MigrationTarget('vsphere',
-                                      cls._credentials,
-                                      cls._test_workload)
-        cls._test_migration = \
-            migration.Migration(cls._mount_points,
-                                cls._test_workload,
-                                cls._test_migration_target)
+        cls._mount_points = [MountPoint(name='C:\\', size=42)]
+        cls._credentials = Credentials(
+            user_name='User',
+            password='passwrd',
+            domain='xxx.com'
+        )
+        cls._test_workload = Workload(
+            id=None,
+            ip='111.11.11',
+            credentials=cls._credentials,
+            storage=cls._mount_points
+        )
+        cls._test_migration_target = MigrationTarget(
+            cloud_type=CloudType.VSPHERE,
+            cloud_credentials=cls._credentials,
+            target_vm=cls._test_workload
+        )
+        cls._test_migration = Migration(
+            mount_points=cls._mount_points,
+            source=cls._test_workload,
+            migration_target=cls._test_migration_target,
+            migration_state=MigrationState.NOT_STARTED
+        )
         cls.results_mock = CollectionResults()
 
     def setUp(self):
@@ -59,10 +77,10 @@ class RepositoryTests(unittest.TestCase):
 
         async def run_test():
             motor_mock = self._make_motor_client()
-            repo = BaseRepository(motor_mock, "test_collection")
+            repo = CruidRepository(motor_mock, "test_collection")
             inserted_id = await repo.create_async(self._test_workload)
 
-            assert "object_id" == inserted_id
+            assert self.results_mock.find_res == inserted_id.id
 
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
@@ -72,7 +90,7 @@ class RepositoryTests(unittest.TestCase):
 
         async def run_test():
             motor_mock = self._make_motor_client()
-            repo = BaseRepository(motor_mock, "test_collection")
+            repo = CruidRepository(motor_mock, "test_collection")
             inserted_id = await repo._replace_document("5e9b1c836ca6be564403c673", self._test_workload)
 
             assert 1 == inserted_id.modified_count
@@ -90,7 +108,7 @@ class RepositoryTests(unittest.TestCase):
             self.results_mock.replace_res = MagicMock(return_value=replace_result_mock)
 
             motor_mock = self._make_motor_client()
-            repo = BaseRepository(motor_mock, "test_collection")
+            repo = CruidRepository(motor_mock, "test_collection")
 
             inserted_id = await repo._replace_document("5e9b1c836ca6be564403c673", self._test_workload)
 
@@ -104,7 +122,7 @@ class RepositoryTests(unittest.TestCase):
 
         async def run_test():
             motor_mock = self._make_motor_client()
-            repo = BaseRepository(motor_mock, "test_collection")
+            repo = CruidRepository(motor_mock, "test_collection")
 
             inserted_id = await repo.delete_async("5e9b1c836ca6be564403c673")
 
@@ -123,7 +141,7 @@ class RepositoryTests(unittest.TestCase):
             self.results_mock.remove_res = remove_result_mock
 
             motor_mock = self._make_motor_client()
-            repo = BaseRepository(motor_mock, "test_collection")
+            repo = CruidRepository(motor_mock, "test_collection")
 
             with self.assertRaises(Exception):
                 await repo.delete_async("5e9b1c836ca6be564403c673")
@@ -161,12 +179,15 @@ class CollectionResults:
 
     @staticmethod
     def _default_find_mock():
-        return MagicMock()
+        document_id = MagicMock()
+        document_id.id = TEST_OBJECT_ID
+
+        return document_id
 
     @staticmethod
     def _default_insert_mock():
         document_id = MagicMock()
-        document_id.inserted_id = "object_id"
+        document_id.inserted_id = TEST_OBJECT_ID
 
         return MagicMock(return_value=document_id)
 

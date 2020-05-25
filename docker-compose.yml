@@ -15,6 +15,11 @@ services:
   rest:
     build: ./
     restart: always
+    environment:
+      MM_MONGO_USR: root
+      MM_MONGO_PASS: password
+      MM_MONGO_HOST: mongo
+      MM_MONGO_PORT: 27017
     depends_on:
       - mongo    
     ports:
