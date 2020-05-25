@@ -80,7 +80,7 @@ class RepositoryTests(unittest.TestCase):
             repo = CruidRepository(motor_mock, "test_collection")
             inserted_id = await repo.create_async(self._test_workload)
 
-            assert TEST_OBJECT_ID == inserted_id.id
+            assert self.results_mock.find_res == inserted_id.id
 
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)

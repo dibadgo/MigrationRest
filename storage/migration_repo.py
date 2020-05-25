@@ -3,14 +3,13 @@ from binds.TargetBind import TargetBind
 from models.migration import Migration
 from models.workload import Workload
 from storage.cruid_repository import CruidRepository
-from storage.mongo_provider import MotorClientFactory
 from storage.workloads_repo import WorkloadsRepo
 
 
 class MigrationRepo(CruidRepository):
     """The concrete implementation of Migration repo"""
 
-    def __init__(self, mongo_client: MotorClientFactory, workload_repo: WorkloadsRepo):
+    def __init__(self, mongo_client, workload_repo: WorkloadsRepo):
         self._workload_repo = workload_repo
         super().__init__(mongo_client, collection_name="migration_binds")
 
