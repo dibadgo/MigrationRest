@@ -1,38 +1,46 @@
 # Migration Mongo
 
 ![](https://img.shields.io/badge/python-3.7-yellow)
-![](https://img.shields.io/badge/mongodb-3.6-green)
+![](https://img.shields.io/badge/FastAPI-0.55.1-009485)
+![](https://img.shields.io/badge/pydantic-1.5.1-e92063)
 ![](https://img.shields.io/badge/asyncio-3.4.3-yellow)
+![](https://img.shields.io/badge/mongodb-3.6-green)
 
-This is the sample REST API on the Flask framework based on MongoDb like a persistence layer and asyncio coroutines.
+This is the sample REST API based on FastAPI framework and MongoDb like a persistence layer and asyncio coroutines.
 
 ## Project includes:
-* REST API
+* REST API base on [FastApi](https://fastapi.tiangolo.com/)
+* [Pydantic](https://pydantic-docs.helpmanual.io/) models
 * [AsyncIo](https://docs.python.org/3/library/asyncio.html)
 * Persistence layer based on [Mongo DB](https://www.mongodb.com/)
-* Unit test coverage
+* Unit test coverage (In progress)
 * Postman collection to make using the project easier
 
-Well, you could download a postman collection form [here](https://drive.google.com/file/d/1yNv2NFlbhsnT1wv3rCrGHtG9AbCKbcQL/view?usp=sharing)
+## Deploy
 
-## Workloads
+The project includes *Dockerfile* and *docker-compose.yml*. So it works out of the box 😎
 
-### List all workloads (GET-request): 
+    cd project_path
+    docker-compose up -d
 
-        curl http://127.0.0.1:80/workloads
+## How to?
 
-### Create new workload (POST-request):
+Well, first you need to get acquainted with the [structure of the project](./Structure.md).
 
-        curl -X POST http://127.0.0.1:80/workloads 
-         -H 'Cache-Control: no-cache' 
-         -H 'Content-Type: application/json'   
-         -d 'worload_object'
+Secondly, you can use CURL requests to the API or use the [Postman collection](https://drive.google.com/file/d/1TM_W-Qnj892NcbleIjUn-Nsy_GJlASU1/view?usp=sharing)
 
-In result you will get the workload id like `5e9b1c836ca6be564403c673`
-         
-Workload object example:
+## Workloads examples
 
-    {
+*List all workloads*
+
+    curl http://127.0.0.1:80/workloads
+
+*Create a new workload*
+
+    curl -X POST http://127.0.0.1:80/workloads 
+     -H 'Cache-Control: no-cache' 
+     -H 'Content-Type: application/json'   
+     -d '{
         "ip": "1.1.1.1", 
         "Credentials": {
             "user_name": "user", 
@@ -49,37 +57,51 @@ Workload object example:
                 "size": 222
             }
         ]
-    }
+    }'
 
-### Update workload (PUT-request)
+*Update thr workload*
 
-        curl -X PUT http://127.0.0.1:80/workloads/5e9b1c836ca6be564403c673
-        -H 'Content-Type: application/json' 
-        -d 'worload_object'
+    curl -X PATCH http://127.0.0.1:80/workloads/<workload_id>
+    -H 'Content-Type: application/json' 
+    -d '{
+        "ip": "1.1.1.1", 
+        "Credentials": {
+            "user_name": "user", 
+            "password": "password",
+            "domain": "tst.com"
+        }, 
+        "Storage": [
+            {
+                "name": "C:\\", 
+                "size": 11
+            },
+            {
+                "name": "D:\\", 
+                "size": 222
+            }
+        ]
+    }'
 
-### delete workload (DELETE-request)
+*Delete workload*
 
-        curl -X DELETE 'http://127.0.0.1:80/workloads?id=0'
+    curl -X DELETE 'http://127.0.0.1:80/workloads/<workload_id>'
 
-## Migrations
+## Migrations examples
 
-### list all migrations (GET-request):
+*Get all migration models*
 
-        curl 127.0.0.1:80/migrations
+    curl 127.0.0.1:80/migrations
 
-### create new migration (POST-request):
-**Note: migration accepts workloads identified by ids, so workloads should be created first.**
+*Create a new migration model*
 
-let's assume we added two workloads
+**Note: this action assumes that we have added two workloads**
 
     curl -X POST http://127.0.0.1:80/migrations 
     -H 'Content-Type: application/json' 
-    -d 'migration_object'
-
-Example of the migration object 
-
+    -d '
     {
-        "source_id": "5e9b1a0aab2830c2284984f8", 
+        "source_id": "<source_workload_id>", 
+        "state": "NOT_STARTED",
         "migration_target": {
             "cloud_credentials": {
                 "user_name": "user", 
@@ -87,8 +109,7 @@ Example of the migration object
                 "domain": "tst.com"
             }, 
             "cloud_type": "azure", 
-            "target_vm_id": "5e9b1a4cab2830c2284984fa"
-            
+            "target_vm_id": "<target_workload_id>"
         }, 
         "mount_points": [
             {
@@ -96,22 +117,45 @@ Example of the migration object
                 "size": 229
             }
         ]
-    }
+    }'
 
-### Update migration (PUT-request)
+**Note: the migration accepts workloads identified by ids, so workloads should be created first.**
 
-        curl -X PUT http://127.0.0.1:80/migrations/<id>
-        -H 'Content-Type: application/json' 
-        -d 'migration_object'
+*Update the migration model*
 
-### Delete migration (DELETE-request)
+    curl -X PATCH http://127.0.0.1:80/migrations/<migration_id>
+    -H 'Content-Type: application/json' 
+    -d '
+    {
+        "state": "NOT_STARTED",
+        "source_id": "5eca7d5ed25d07212e4e5540",
+        "migration_target": {
+            "cloud_credentials": {
+                "user_name": "user", 
+                "password": "password",
+                "domain": "tst.com"
+                
+            },
+            "cloud_type": "vsphere",
+            "target_vm_id": "5eca7dd9d25d07212e4e5543"
+            
+        }, 
+        "mount_points": [
+            {
+                "name": "C:\\", 
+                "size": 555
+            }
+        ]
+    }'
 
-        curl -X DELETE 'http://127.0.0.1:80/migrations/<id>'
+*Delete migration*
 
-### Run migration (POST-request)
+    curl -X DELETE 'http://127.0.0.1:80/migrations/<migration_id>'
 
-        curl -X POST 'http://127.0.0.1:80/migrations/run/<id>'
+*Run migration*
 
-### Get migration state (GET-request)
+    curl -X POST 'http://127.0.0.1:80/migrations/run/<migration_id>'
 
-        curl http://127.0.0.1:80/migrations/state/0
+*Get the migration's state*
+
+    curl http://127.0.0.1:80/migrations/state/<migration_id>
