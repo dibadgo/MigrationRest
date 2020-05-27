@@ -22,4 +22,4 @@ services:
     depends_on:
       - mongo    
     ports:
-      - 6575:8001
+      - 6576:8001
