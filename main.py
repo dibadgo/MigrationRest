@@ -1,5 +1,4 @@
 from fastapi import FastAPI
-import uvicorn
 from requests import Request
 from starlette.responses import JSONResponse
 

@@ -8,6 +8,7 @@ from storage.workloads_repo import WorkloadsRepo
 
 
 class RepoProvider:
+    """Provider of repos"""
 
     def __init__(self) -> None:
         self._workload_repo = None
@@ -17,6 +18,7 @@ class RepoProvider:
 
     @property
     def workload_repo(self):
+        """Workload repository"""
         if not self._workload_repo:
             self._workload_repo = self._create_workload_repo()
 
@@ -24,6 +26,7 @@ class RepoProvider:
 
     @property
     def migration_repo(self):
+        """Migration repository"""
         if not self._migration_repo:
             self._migration_repo = self._create_migration_repo()
 
@@ -42,7 +45,7 @@ class RepoProvider:
         connection_string = f'mongodb://{username}:{password}@{host}:{port}'
         logging.debug(f"Mongo connection string {connection_string}")
 
-        return AsyncIOMotorClient(f'mongodb://{username}:{password}@{host}:{port}')
+        return AsyncIOMotorClient(connection_string)
 
     def _create_migration_repo(self) -> MigrationRepo:
         workload_repo = self.workload_repo
@@ -53,4 +56,8 @@ class RepoProvider:
 
 
 async def repos_provider() -> RepoProvider:
+    """ This method will used to delivery of dependencies of repositories
+
+    :return: RepoProvider
+    """
     return RepoProvider()

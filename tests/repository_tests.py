@@ -16,8 +16,11 @@ TEST_OBJECT_ID = "5e9b1c836ca6be564403c673"
 
 
 class RepositoryTests(unittest.TestCase):
+    """Test for Cruid repository"""
+
     @classmethod
     def setUpClass(cls):
+        """Makes default values"""
         cls._mount_points = [MountPoint(name='C:\\', size=42)]
         cls._credentials = Credentials(
             user_name='User',
@@ -74,32 +77,35 @@ class RepositoryTests(unittest.TestCase):
         return motor_mock
 
     def test_create_document(self):
+        """Test of create document"""
 
         async def run_test():
             motor_mock = self._make_motor_client()
             repo = CruidRepository(motor_mock, "test_collection")
-            inserted_id = await repo.create_async(self._test_workload)
+            created_doc = await repo.create_async(self._test_workload)
 
-            assert self.results_mock.find_res == inserted_id.id
+            assert TEST_OBJECT_ID == created_doc.id
 
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
         loop.run_until_complete(run_test())
 
     def test_update_existing_document(self):
+        """ Test replace existing document"""
 
         async def run_test():
             motor_mock = self._make_motor_client()
             repo = CruidRepository(motor_mock, "test_collection")
-            inserted_id = await repo._replace_document("5e9b1c836ca6be564403c673", self._test_workload)
+            inserted_obj = await repo._replace_document(TEST_OBJECT_ID, self._test_workload)
 
-            assert 1 == inserted_id.modified_count
+            assert 1 == inserted_obj.modified_count
 
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
         loop.run_until_complete(run_test())
 
     def test_update_not_existing_document(self):
+        """ Test replace existing document"""
 
         async def run_test():
             replace_result_mock = MagicMock()
@@ -110,7 +116,7 @@ class RepositoryTests(unittest.TestCase):
             motor_mock = self._make_motor_client()
             repo = CruidRepository(motor_mock, "test_collection")
 
-            inserted_id = await repo._replace_document("5e9b1c836ca6be564403c673", self._test_workload)
+            inserted_id = await repo._replace_document(TEST_OBJECT_ID, self._test_workload)
 
             assert 0 == inserted_id.modified_count
 
@@ -119,7 +125,7 @@ class RepositoryTests(unittest.TestCase):
         loop.run_until_complete(run_test())
 
     def test_delete_document(self):
-
+        """Test delete document"""
         async def run_test():
             motor_mock = self._make_motor_client()
             repo = CruidRepository(motor_mock, "test_collection")
@@ -133,6 +139,7 @@ class RepositoryTests(unittest.TestCase):
         loop.run_until_complete(run_test())
 
     def test_delete_not_existing_document(self):
+        """Test delete document if not exists"""
 
         async def run_test():
             remove_result_mock = MagicMock()
@@ -179,10 +186,15 @@ class CollectionResults:
 
     @staticmethod
     def _default_find_mock():
-        document_id = MagicMock()
-        document_id.id = TEST_OBJECT_ID
+        target_document = MagicMock()
+        target_document.id = TEST_OBJECT_ID
 
-        return document_id
+        mongo_res_mock = MagicMock()
+        d = {'data': target_document, "_id": TEST_OBJECT_ID}
+        mongo_res_mock.__getitem__.side_effect = d.__getitem__
+        mongo_res_mock.__iter__.side_effect = d.__iter__
+
+        return MagicMock(return_value=mongo_res_mock)
 
     @staticmethod
     def _default_insert_mock():
