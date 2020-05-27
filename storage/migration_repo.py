@@ -13,7 +13,7 @@ class MigrationRepo(CruidRepository):
         self._workload_repo = workload_repo
         super().__init__(mongo_client, collection_name="migration_binds")
 
-    def create_model_from_dict(self, d: dict, obj_id: str):
+    def create_model_from_dict(self, d: dict, obj_id: str) -> MigrationBind:
         d["id"] = obj_id
         return MigrationBind(**d)
 
