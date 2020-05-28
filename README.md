@@ -24,6 +24,12 @@ The project includes *Dockerfile* and *docker-compose.yml*. So it works out of t
     cd project_path
     docker-compose up -d
 
+or using **Makefile**
+    
+    cd project_path
+    make deploy
+    
+
 ## How to?
 
 Well, first you need to get acquainted with the [structure of the project](./Structure.md).
