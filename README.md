@@ -16,6 +16,7 @@ This is the sample REST API based on FastAPI framework and MongoDb like a persis
 * Unit test coverage (In progress, 50% done)
 * Postman collection to make using the project easier
 * Dependency injection (FastApi)
+* Makefile
 
 ## Deploy
 
