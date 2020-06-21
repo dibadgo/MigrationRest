@@ -13,6 +13,7 @@ This is the sample REST API based on FastAPI framework and MongoDb like a persis
 * [Pydantic](https://pydantic-docs.helpmanual.io/) models
 * [AsyncIo](https://docs.python.org/3/library/asyncio.html)
 * Persistence layer based on [Mongo DB](https://www.mongodb.com/)
+* Token base authorization (JWT tokens)
 * Unit test coverage (In progress, 50% done)
 * Postman collection to make using the project easier
 * Dependency injection (FastApi)
@@ -160,3 +161,25 @@ Secondly, you can use CURL requests to the API or use the [Postman collection](h
 *Get the migration's state*
 
     curl http://127.0.0.1:80/migrations/state/<migration_id>
+
+## Auth examples
+
+*Create user*
+
+    curl --location --request POST 'http://127.0.0.1:8001/register' \
+    --header 'Content-Type: application/json' \
+    --data-raw '{
+        "username": "Test",
+        "email": "alex@mail.com",
+        "full_name": "VasilyR",
+        "disabled": false,
+        "password": "password"
+    }'
+
+
+*Get token*
+
+    curl --location --request POST 'http://127.0.0.1:8001/token' \
+    --header 'Content-Type: application/x-www-form-urlencoded' \
+    --data-urlencode 'username=Test' \
+    --data-urlencode 'password=password'

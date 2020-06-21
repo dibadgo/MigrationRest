@@ -12,7 +12,7 @@ router = APIRouter()
 loop = asyncio.get_event_loop()
 
 
-@router.get("/migrations/state/{migration_id}")
+@router.get("/migrations/{migration_id}/state")
 async def get_migration_state(migration_id, repos: RepoProvider = Depends(repos_provider)):
     """ Returns the migration state by Id
 
@@ -26,7 +26,7 @@ async def get_migration_state(migration_id, repos: RepoProvider = Depends(repos_
     return migration.migration_state
 
 
-@router.post("/migrations/run/{migration_id}")
+@router.post("/migrations/{migration_id}/run")
 def run_migration(migration_id, repos: RepoProvider = Depends(repos_provider)):
     """ Run the migration process in foreground
 

@@ -22,6 +22,13 @@ The namespace for manage of migration models
 * POST *migrations/run/<migration_id>* - Init the migration process
 * PATCH *migrations/<migration_id>* - Modify the migration by id
 
+### Auth 
+The namespace for manage of users and JWT tokens
+
+* POST *token* - Obtain a JWT token
+* POST *register* - Register a new user
+* GET *users/me* - Get the information about current user
+
 ## Project structure
 
 * */binds* - The binds model related with main logic models

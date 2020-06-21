@@ -36,6 +36,7 @@ async def get_current_user(token: str = Depends(oauth2_scheme), repos: RepoProvi
     user = await repos.users_repo.get_user(username)
     if not user:
         raise credentials_exception
+    del user.hashed_password
     return user
 
 
@@ -77,4 +78,5 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends(), repos: RepoPro
 
 @router.get("/users/me")
 async def read_users_me(current_user: User = Depends(get_current_active_user)):
+
     return current_user
