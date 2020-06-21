@@ -1,12 +1,14 @@
+import uvicorn
 from fastapi import FastAPI
 from requests import Request
 from starlette.responses import JSONResponse
 
-from rest import workloads, migrations
+from rest import workloads, migrations, auth
 
 app = FastAPI()
 app.include_router(workloads.router)
 app.include_router(migrations.router)
+app.include_router(auth.router)
 
 
 @app.get("/")
@@ -20,3 +22,9 @@ async def unicorn_exception_handler(request: Request, exc: Exception):
         status_code=400,
         content={"message": f"Heads up! Something went wrong: {exc}"},
     )
+
+if __name__ == "__main__":
+    app.include_router(workloads.router)
+    app.include_router(migrations.router)
+
+    uvicorn.run(app, host="0.0.0.0", port=8001)
