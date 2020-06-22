@@ -20,6 +20,12 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/token")
 
 
 async def get_current_user(token: str = Depends(oauth2_scheme), repos: RepoProvider = Depends(repos_provider)) -> User:
+    """ Decrypt a current user from the provided JWT token
+
+    :param token: JWT Bearer token
+    :param repos: RepoProvider
+    :return: Current user from JWT
+    """
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
@@ -41,12 +47,23 @@ async def get_current_user(token: str = Depends(oauth2_scheme), repos: RepoProvi
 
 
 async def get_current_active_user(current_user: User = Depends(get_current_user)):
+    """ Provides the current User and check the user's state
+
+    :param current_user: Current user from JWT
+    :return: User or HTTP 401
+    """
     if current_user.disabled:
         raise HTTPException(status_code=400, detail="Inactive user")
     return current_user
 
 
 def create_access_token(data: dict, expires_delta: timedelta = None):
+    """ Creates a JWT based on provided data
+
+    :param data: data to encrypt to JWT
+    :param expires_delta: Expiration data of JWT
+    :return: JWT access token
+    """
     to_encode = data.copy()
     if expires_delta:
         expire = datetime.utcnow() + expires_delta
@@ -59,6 +76,12 @@ def create_access_token(data: dict, expires_delta: timedelta = None):
 
 @router.post("/register")
 async def create_user(user: RegisterUser, repos: RepoProvider = Depends(repos_provider)):
+    """ Register a new user
+
+    :param user: User's info
+    :param repos: RepoProvider
+    :return: User's info
+    """
     user = await repos.users_repo.create_user(user, user.password)
 
     return user
@@ -66,6 +89,12 @@ async def create_user(user: RegisterUser, repos: RepoProvider = Depends(repos_pr
 
 @router.post("/token")
 async def login(form_data: OAuth2PasswordRequestForm = Depends(), repos: RepoProvider = Depends(repos_provider)):
+    """ Obtain a JWT bearer token base on user's info (login and password)
+
+    :param form_data: oAuth2.0 info
+    :param repos: RepoProvider
+    :return: access token and type
+    """
     user = await repos.users_repo.get_user(form_data.username)
     if not user:
         raise HTTPException(status_code=400, detail="Incorrect username or password")
@@ -78,5 +107,9 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends(), repos: RepoPro
 
 @router.get("/users/me")
 async def read_users_me(current_user: User = Depends(get_current_active_user)):
+    """ Provides an information about the current user
 
+    :param current_user: Current User
+    :return: User
+    """
     return current_user
